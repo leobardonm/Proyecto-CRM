@@ -83,7 +83,7 @@ export default function Home() {
               </div>
               <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Negociaciones</h3>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total ventas</h3>
                   <span className="text-2xl font-bold text-gray-900 dark:text-white">64</span>
                 </div>
               </div>
@@ -101,21 +101,21 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Recent Activities & Tasks */}
+
             {/* Recent Clients Table */}
             <div className="mt-8">
-              <div className="overflow-hidden bg-white rounded-lg shadow-sm dark:bg-gray-800">
+              <div className="overflow-hidden bg-white rounded-lg shadow-sm dark:bg-gray-800 ">
                 <div className="px-4 py-5 sm:px-6">
-                  <h2 className="text-lg font-medium text-gray-900 dark:text-white text-center">Clientes Recientes</h2>
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-white text-center">Ventas Recientes</h2>
                 </div>
                 <div className="overflow-x-auto rounded-lg">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700">
                       <tr>
                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider rounded-tl-lg">
-                          Cliente
+                          Nombre
                         </th>
-                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider ">
                           Correo
                         </th>
                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -127,48 +127,7 @@ export default function Home() {
                       </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                      <tr>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white text-center">
-                          Juan Pérez
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          juan.perez@email.com
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          +52 555-123-4567
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          Ana García
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white text-center">
-                          María López
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          maria.lopez@email.com
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          +52 555-234-5678
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          Carlos Ruiz
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white text-center rounded-bl-lg">
-                          Roberto Sánchez
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          roberto.sanchez@email.com
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          +52 555-345-6789
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center rounded-br-lg">
-                          Laura Torres
-                        </td>
-                      </tr>
+                      
                     </tbody>
                   </table>
                 </div>
