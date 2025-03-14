@@ -30,6 +30,7 @@ export default function Home() {
 
   // State for client count
   const [clientCount, setClientCount] = useState<number>(0);
+  const [negotiationCount, setNegotiationCount] = useState<number>(0);
 
   // Fetch the client count from the backend API
   const fetchClientCount = async () => {
@@ -42,9 +43,23 @@ export default function Home() {
     }
   };
 
+  const fetchNegotiationCount = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/negociaciones/count');
+      const data = await response.json();
+      setNegotiationCount(data.totalNegociacion);
+    } catch (error) {
+      console.error('Error fetching negotiation count:', error);
+    }
+  };
+
   // Fetch client count when the component mounts
   useEffect(() => {
     fetchClientCount();
+  }, []);
+
+  useEffect(() => {
+    fetchNegotiationCount();
   }, []);
 
   const onDragEnd = (result: any) => {
@@ -103,7 +118,7 @@ export default function Home() {
               <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Negociaciones</h3>
-                  <span className="text-2xl font-bold text-gray-900 dark:text-white">64</span>
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{negotiationCount}</span>
                 </div>
               </div>
               <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800">

@@ -5,6 +5,7 @@ const { conectarDB } = require('./config/database');
 
 // Importar rutas
 const clientesRoutes = require('./clientes/clientes.routes');
+const negociacionesRoutes = require('./negociaciones/negociaciones.routes');
 
 dotenv.config();
 const app = express();
@@ -19,6 +20,7 @@ conectarDB();
 
 // Rutas principales
 app.use('/api/clientes', clientesRoutes);
+app.use('/api/negociaciones', negociacionesRoutes);
 
 // Iniciar servidor
 app.listen(PUERTO, () => {
