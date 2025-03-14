@@ -1,114 +1,81 @@
+// index.js
 const express = require('express');
 const cors = require('cors');
-const mysql = require('mysql2'); // O usa pg para PostgreSQL
+const sql = require('mssql');
+require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PUERTO = process.env.PUERTO || 5000;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Conexión a la base de datos (modifica según la que uses)
-const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root', // Cambia según tu configuración
-    password: '', // Tu contraseña
-    database: 'mi_base_de_datos' // Nombre de tu DB
+// Configuración de la base de datos
+const configuracionBD = {
+  user: process.env.USUARIO_BD,
+  password: process.env.CONTRASENA_BD,
+  server: process.env.SERVIDOR_BD,
+  database: process.env.NOMBRE_BD,
+  options: {
+    encrypt: true, // Necesario para Azure SQL
+    trustServerCertificate: false // Validar certificado SSL
+  }
+};
+
+// Conectar a la base de datos
+sql.connect(configuracionBD)
+  .then(() => console.log('Conectado a la base de datos Azure SQL'))
+  .catch(err => console.error('Error de conexión:', err));
+
+// Ruta para obtener todas las notas
+app.get('/api/notas', async (req, res) => {
+  try {
+    const solicitud = new sql.Request();
+    const resultado = await solicitud.query('SELECT * FROM Ejemplo');
+    res.json(resultado.recordset);
+  } catch (error) {
+    res.status(500).json({ error: `Error al obtener notas: ${error.message}` });
+  }
 });
 
-db.connect(err => {
-    if (err) {
-        console.error('Error conectando a la base de datos:', err);
-        return;
-    }
-    console.log('Conectado a la base de datos');
+// Ruta para agregar una nueva nota
+app.post('/api/notas', async (req, res) => {
+  const { nuevaNota } = req.body;
+  
+  if (!nuevaNota) {
+    return res.status(400).json({ error: 'El campo "nuevaNota" es requerido' });
+  }
+
+  try {
+    const solicitud = new sql.Request();
+    await solicitud
+      .input('nuevaNota', sql.VarChar, nuevaNota)
+      .query('INSERT INTO Ejemplo (nota) VALUES (@nuevaNota)');
+    
+    res.json({ mensaje: 'Nota agregada exitosamente' });
+  } catch (error) {
+    res.status(500).json({ error: `Error al agregar nota: ${error.message}` });
+  }
 });
 
-// Obtener estadísticas generales
-app.get('/stats', (req, res) => {
-    const query = `SELECT 
-        (SELECT COUNT(*) FROM clientes) AS totalClientes, 
-        (SELECT COUNT(*) FROM negociaciones) AS totalNegociaciones, 
-        (SELECT SUM(comision) FROM comisiones) AS totalComisiones, 
-        (SELECT COUNT(*) FROM vendedores) AS totalVendedores`;
+// Ruta para eliminar una nota
+app.delete('/api/notas/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const solicitud = new sql.Request();
+    await solicitud
+      .input('id', sql.Int, id)
+      .query('DELETE FROM Ejemplo WHERE id = @id');
     
-    db.query(query, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(results[0]);
-    });
+    res.json({ mensaje: 'Nota eliminada exitosamente' });
+  } catch (error) {
+    res.status(500).json({ error: `Error al eliminar nota: ${error.message}` });
+  }
 });
 
-// Obtener clientes recientes
-app.get('/recent-clients', (req, res) => {
-    const query = `SELECT c.nombre, c.correo, c.telefono, v.nombre AS vendedor 
-                   FROM clientes c 
-                   JOIN vendedores v ON c.vendedor_id = v.id 
-                   ORDER BY c.fecha_registro DESC LIMIT 3`;
-    
-    db.query(query, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(results);
-    });
-});
-
-// Obtener negociaciones categorizadas por estado
-app.get('/negotiations', (req, res) => {
-    const query = `SELECT id, cliente, monto, estado FROM negociaciones`;
-    
-    db.query(query, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        
-        const negotiations = {
-            "En Proceso": [],
-            "Cancelada": [],
-            "Terminada": []
-        };
-        
-        results.forEach(negotiation => {
-            negotiations[negotiation.estado].push(negotiation);
-        });
-        
-        res.json(negotiations);
-    });
-});
-
-// Actualizar el estado de una negociación
-app.put('/negotiations/:id', (req, res) => {
-    const { id } = req.params;
-    const { estado } = req.body;
-    
-    if (!["En Proceso", "Cancelada", "Terminada"].includes(estado)) {
-        return res.status(400).json({ error: "Estado no válido" });
-    }
-    
-    const query = `UPDATE negociaciones SET estado = ? WHERE id = ?`;
-    
-    db.query(query, [estado, id], (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "Negociación actualizada correctamente" });
-    });
-});
-
-// Crear una nueva negociación
-app.post('/negotiations', (req, res) => {
-    const { cliente, monto, estado } = req.body;
-    
-    if (!cliente || !monto || !estado) {
-        return res.status(400).json({ error: "Todos los campos son obligatorios" });
-    }
-    
-    if (!["En Proceso", "Cancelada", "Terminada"].includes(estado)) {
-        return res.status(400).json({ error: "Estado no válido" });
-    }
-    
-    const query = `INSERT INTO negociaciones (cliente, monto, estado) VALUES (?, ?, ?)`;
-    
-    db.query(query, [cliente, monto, estado], (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "Negociación creada exitosamente", id: results.insertId });
-    });
-});
-
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
+// Iniciar servidor
+app.listen(PUERTO, () => {
+  console.log(`Servidor ejecutándose en http://localhost:${PUERTO}`);
 });
