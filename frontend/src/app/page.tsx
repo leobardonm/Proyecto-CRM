@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
@@ -27,6 +27,25 @@ export default function Home() {
       { id: '4', cliente: 'Cliente D', monto: '$10,500' },
     ],
   });
+
+  // State for client count
+  const [clientCount, setClientCount] = useState<number>(0);
+
+  // Fetch the client count from the backend API
+  const fetchClientCount = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/clientes/count');
+      const data = await response.json();
+      setClientCount(data.totalClientes);
+    } catch (error) {
+      console.error('Error fetching client count:', error);
+    }
+  };
+
+  // Fetch client count when the component mounts
+  useEffect(() => {
+    fetchClientCount();
+  }, []);
 
   const onDragEnd = (result: any) => {
     const { source, destination } = result;
@@ -78,7 +97,7 @@ export default function Home() {
               <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Clientes</h3>
-                  <span className="text-2xl font-bold text-gray-900 dark:text-white">33</span>
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{clientCount}</span>
                 </div>
               </div>
               <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800">
@@ -127,6 +146,7 @@ export default function Home() {
                       </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      {/* Replace with dynamic rows */}
                       <tr>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white text-center">
                           Juan Pérez
@@ -141,40 +161,11 @@ export default function Home() {
                           Ana García
                         </td>
                       </tr>
-                      <tr>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white text-center">
-                          María López
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          maria.lopez@email.com
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          +52 555-234-5678
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          Carlos Ruiz
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white text-center rounded-bl-lg">
-                          Roberto Sánchez
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          roberto.sanchez@email.com
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          +52 555-345-6789
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center rounded-br-lg">
-                          Laura Torres
-                        </td>
-                      </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
             </div>
-
           </div>
         </main>
       </div>
