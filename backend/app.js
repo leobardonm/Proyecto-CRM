@@ -1,4 +1,3 @@
-// index.js
 const express = require('express');
 const cors = require('cors');
 const sql = require('mssql');
@@ -25,57 +24,22 @@ const configuracionBD = {
 
 // Conectar a la base de datos
 sql.connect(configuracionBD)
-  .then(() => console.log('Conectado a la base de datos Azure SQL'))
-  .catch(err => console.error('Error de conexión:', err));
+  .then(() => console.log('✅ Conectado a la base de datos Azure SQL'))
+  .catch(err => console.error('❌ Error de conexión:', err));
 
-// Ruta para obtener todas las notas
-app.get('/api/notas', async (req, res) => {
+// 📌 Ruta para obtener el número total de clientes
+app.get('/api/clientes/count', async (req, res) => {
   try {
     const solicitud = new sql.Request();
-    const resultado = await solicitud.query('SELECT * FROM Ejemplo');
-    res.json(resultado.recordset);
-  } catch (error) {
-    res.status(500).json({ error: `Error al obtener notas: ${error.message}` });
-  }
-});
-
-// Ruta para agregar una nueva nota
-app.post('/api/notas', async (req, res) => {
-  const { nuevaNota } = req.body;
-  
-  if (!nuevaNota) {
-    return res.status(400).json({ error: 'El campo "nuevaNota" es requerido' });
-  }
-
-  try {
-    const solicitud = new sql.Request();
-    await solicitud
-      .input('nuevaNota', sql.VarChar, nuevaNota)
-      .query('INSERT INTO Ejemplo (nota) VALUES (@nuevaNota)');
+    const resultado = await solicitud.query('SELECT COUNT(*) AS total FROM Cliente');
     
-    res.json({ mensaje: 'Nota agregada exitosamente' });
+    res.json({ totalClientes: resultado.recordset[0].total });
   } catch (error) {
-    res.status(500).json({ error: `Error al agregar nota: ${error.message}` });
-  }
-});
-
-// Ruta para eliminar una nota
-app.delete('/api/notas/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const solicitud = new sql.Request();
-    await solicitud
-      .input('id', sql.Int, id)
-      .query('DELETE FROM Ejemplo WHERE id = @id');
-    
-    res.json({ mensaje: 'Nota eliminada exitosamente' });
-  } catch (error) {
-    res.status(500).json({ error: `Error al eliminar nota: ${error.message}` });
+    res.status(500).json({ error: `Error al obtener el número de clientes: ${error.message}` });
   }
 });
 
 // Iniciar servidor
 app.listen(PUERTO, () => {
-  console.log(`Servidor ejecutándose en http://localhost:${PUERTO}`);
+  console.log(`🚀 Servidor ejecutándose en http://localhost:${PUERTO}`);
 });
