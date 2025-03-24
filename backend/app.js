@@ -9,7 +9,7 @@ const negociacionesRoutes = require('./negociaciones/negociaciones.routes');
 
 dotenv.config();
 const app = express();
-const PUERTO = process.env.PUERTO || 5000;
+const PUERTO = 5002;
 
 app.use(cors());
 app.use(express.json());
