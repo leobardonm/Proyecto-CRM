@@ -1,7 +1,29 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 interface NegociacionItem {
   id: string;
@@ -28,9 +50,43 @@ export default function Home() {
     ],
   });
 
-  // State for client count
+  // State for client count and sales data
   const [clientCount, setClientCount] = useState<number>(0);
   const [negotiationCount, setNegotiationCount] = useState<number>(0);
+  const [salesData, setSalesData] = useState({
+    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+    datasets: [
+      {
+        label: 'Ventas Completadas',
+        data: [12000, 19000, 15000, 25000, 22000, 30000],
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.1,
+      },
+    ],
+  });
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      title: {
+        display: true,
+        text: 'Ventas Completadas por Mes',
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(this: any, tickValue: number | string) {
+            return '$' + Number(tickValue).toLocaleString();
+          }
+        }
+      }
+    }
+  };
 
   // Fetch the client count from the backend API
   const fetchClientCount = async () => {
@@ -53,13 +109,32 @@ export default function Home() {
     }
   };
 
+  // Fetch sales data
+  const fetchSalesData = async () => {
+    try {
+      const response = await fetch('http://localhost:5002/api/ventas/mensuales');
+      const data = await response.json();
+      setSalesData({
+        labels: data.meses,
+        datasets: [
+          {
+            label: 'Ventas Completadas',
+            data: data.ventas,
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1,
+          },
+        ],
+      });
+    } catch (error) {
+      console.error('Error fetching sales data:', error);
+    }
+  };
+
   // Fetch client count when the component mounts
   useEffect(() => {
     fetchClientCount();
-  }, []);
-
-  useEffect(() => {
     fetchNegotiationCount();
+    fetchSalesData();
   }, []);
 
   const onDragEnd = (result: any) => {
@@ -109,76 +184,44 @@ export default function Home() {
           <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 gap-5 mt-2 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Clientes</h3>
-                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{clientCount}</span>
+              <Link href="/clientes" className="block">
+                <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Clientes</h3>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">{clientCount}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Negociaciones</h3>
-                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{negotiationCount}</span>
+              </Link>
+              <Link href="/negociaciones" className="block">
+                <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Negociaciones</h3>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">{negotiationCount}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Comisiones</h3>
-                  <span className="text-2xl font-bold text-gray-900 dark:text-white">$24.5k</span>
+              </Link>
+              <Link href="/productos" className="block">
+                <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Ventas del mes</h3>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">$24.5k</span>
+                  </div>
                 </div>
-              </div>
-              <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Vendedores</h3>
-                  <span className="text-2xl font-bold text-gray-900 dark:text-white">12</span>
+              </Link>
+              <Link href="/vendedores" className="block">
+                <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Vendedores</h3>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">12</span>
+                  </div>
                 </div>
-              </div>
+              </Link>
             </div>
 
-            {/* Recent Activities & Tasks */}
-            {/* Recent Clients Table */}
+            {/* Sales Chart */}
             <div className="mt-8">
-              <div className="overflow-hidden bg-white rounded-lg shadow-sm dark:bg-gray-800">
-                <div className="px-4 py-5 sm:px-6">
-                  <h2 className="text-lg font-medium text-gray-900 dark:text-white text-center">Clientes Recientes</h2>
-                </div>
-                <div className="overflow-x-auto rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider rounded-tl-lg">
-                          Cliente
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Correo
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Teléfono
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider rounded-tr-lg">
-                          Vendedor
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                      {/* Replace with dynamic rows */}
-                      <tr>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white text-center">
-                          Juan Pérez
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          juan.perez@email.com
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          +52 555-123-4567
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">
-                          Ana García
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+              <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800">
+                <Line options={chartOptions} data={salesData} />
               </div>
             </div>
           </div>

@@ -29,14 +29,61 @@ export default function Negociaciones() {
     ],
   });
 
-  const handleEdit = (id: string) => {
-    console.log('Editar negociación:', id);
-    // Implementar lógica de edición
+  const handleEdit = async (id: string, data: { cliente: string; monto: string }) => {
+    try {
+      const response = await fetch(`/api/negociaciones/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar la negociación');
+      }
+
+      // Actualizar el estado local
+      setNegociaciones(prevNegociaciones => {
+        const newNegociaciones = { ...prevNegociaciones };
+        Object.keys(newNegociaciones).forEach(estado => {
+          newNegociaciones[estado] = newNegociaciones[estado].map(item => {
+            if (item.id === id) {
+              return { ...item, ...data };
+            }
+            return item;
+          });
+        });
+        return newNegociaciones;
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      // Aquí podrías mostrar un mensaje de error al usuario
+    }
   };
 
-  const handleDelete = (id: string) => {
-    console.log('Eliminar negociación:', id);
-    // Implementar lógica de eliminación
+  const handleDelete = async (id: string) => {
+    try {
+      const response = await fetch(`/api/negociaciones/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar la negociación');
+      }
+
+      // Actualizar el estado local eliminando la negociación
+      setNegociaciones(prevNegociaciones => {
+        const newNegociaciones = { ...prevNegociaciones };
+        Object.keys(newNegociaciones).forEach(estado => {
+          newNegociaciones[estado] = newNegociaciones[estado].filter(item => item.id !== id);
+        });
+        return newNegociaciones;
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      // Aquí podrías mostrar un mensaje de error al usuario
+    }
   };
 
   const onDragEnd = (result: any) => {
