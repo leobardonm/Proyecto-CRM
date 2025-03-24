@@ -1,52 +1,45 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Table from '@/components/Table';
 
 interface Producto {
-  id: string;
-  descripcion: string;
-  precio: string;
+  ID: number; // Asegúrate de que coincida con el nombre devuelto por el backend
+  Descripcion: string;
+  Precio: number;
 }
 
 export default function ProductoPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [productos, setProductos] = useState<Producto[]>([]);
 
-  // Definición de columnas para la tabla
   const columns = [
     {
       header: 'Id',
-      accessor: 'id',
+      accessor: 'ID', // Coincidir con el backend
     },
     {
       header: 'Descripcion',
-      accessor: 'descripcion',
+      accessor: 'Descripcion',
     },
     {
       header: 'Precio',
-      accessor: 'precio',
+      accessor: 'Precio',
     }
   ];
 
-  // Datos de ejemplo - En un caso real, estos vendrían de una API
-  const ProductoData: Producto[] = [
-    {
-      id: '1',
-      descripcion: 'Producto 1',
-      precio: '100',
-    },
-    {
-      id: '2',
-      descripcion: 'Producto 2',
-      precio: '200',
-    },
-    {
-      id: '3',
-      descripcion: 'Producto 3',
-      precio: '300',
-    },
-    // Agrega más datos según necesites
-  ];
+  useEffect(() => {
+    fetch('http://localhost:5002/api/productos/productos') // Corrige la URL si es necesario
+      .then(response => response.json())
+      .then(data => {
+        if (data.productos) {
+          setProductos(data.productos);
+        } else {
+          console.error('La respuesta de la API no contiene productos:', data);
+        }
+      })
+      .catch(error => console.error('Error:', error));
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -69,10 +62,7 @@ export default function ProductoPage() {
             <div className="flex justify-end mb-4">
               <button
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                onClick={() => {
-                  // Aquí irá la lógica para agregar nuevo producto
-                  console.log('Agregar nuevo cliente');
-                }}
+                onClick={() => console.log('Agregar nuevo cliente')}
               >
                 Agregar Producto
               </button>
@@ -80,7 +70,7 @@ export default function ProductoPage() {
 
             <Table
               columns={columns}
-              data={ProductoData}
+              data={productos}
               title="Lista de Productos"
             />
           </div>
