@@ -3,58 +3,47 @@ import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Table from '@/components/Table';
 
-interface Cliente {
+interface Producto {
   id: string;
-  nombre: string;
-  correo: string;
-  telefono: string;
-  vendedor: string;
+  descripcion: string;
+  precio: string;
 }
 
-export default function ClientesPage() {
+export default function ProductoPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Definición de columnas para la tabla
   const columns = [
     {
-      header: 'Nombre',
-      accessor: 'nombre',
+      header: 'Id',
+      accessor: 'id',
     },
     {
-      header: 'Correo',
-      accessor: 'correo',
+      header: 'Descripcion',
+      accessor: 'descripcion',
     },
     {
-      header: 'Teléfono',
-      accessor: 'telefono',
-    },
-    {
-      header: 'Vendedor',
-      accessor: 'vendedor',
-      // Ejemplo de celda personalizada
-      cell: (row: Cliente) => (
-        <span className="text-blue-600 dark:text-blue-400">
-          {row.vendedor}
-        </span>
-      ),
-    },
+      header: 'Precio',
+      accessor: 'precio',
+    }
   ];
 
   // Datos de ejemplo - En un caso real, estos vendrían de una API
-  const clientesData: Cliente[] = [
+  const ProductoData: Producto[] = [
     {
       id: '1',
-      nombre: 'Juan Pérez',
-      correo: 'juan@ejemplo.com',
-      telefono: '123-456-7890',
-      vendedor: 'Ana García',
+      descripcion: 'Producto 1',
+      precio: '100',
     },
     {
       id: '2',
-      nombre: 'María López',
-      correo: 'maria@ejemplo.com',
-      telefono: '098-765-4321',
-      vendedor: 'Carlos Ruiz',
+      descripcion: 'Producto 2',
+      precio: '200',
+    },
+    {
+      id: '3',
+      descripcion: 'Producto 3',
+      precio: '300',
     },
     // Agrega más datos según necesites
   ];
@@ -70,7 +59,7 @@ export default function ClientesPage() {
         <header className="bg-white dark:bg-gray-800 shadow-sm">
           <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Clientes
+              Productos
             </h1>
           </div>
         </header>
@@ -81,7 +70,7 @@ export default function ClientesPage() {
               <button
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                 onClick={() => {
-                  // Aquí irá la lógica para agregar nuevo cliente
+                  // Aquí irá la lógica para agregar nuevo producto
                   console.log('Agregar nuevo cliente');
                 }}
               >
@@ -91,7 +80,7 @@ export default function ClientesPage() {
 
             <Table
               columns={columns}
-              data={clientesData}
+              data={ProductoData}
               title="Lista de Productos"
             />
           </div>

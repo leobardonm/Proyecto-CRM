@@ -35,7 +35,7 @@ export default function Home() {
   // Fetch the client count from the backend API
   const fetchClientCount = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/clientes/count');
+      const response = await fetch('http://localhost:5002/api/clientes/count');
       const data = await response.json();
       setClientCount(data.totalClientes);
     } catch (error) {
@@ -45,7 +45,7 @@ export default function Home() {
 
   const fetchNegotiationCount = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/negociaciones/count');
+      const response = await fetch('http://localhost:5002/api/negociaciones/count');
       const data = await response.json();
       setNegotiationCount(data.totalNegociacion);
     } catch (error) {

@@ -8,8 +8,7 @@ interface Vendedor {
   nombre: string;
   correo: string;
   telefono: string;
-  comision: string;
-  ventas: number;
+  ventas: string;
 }
 
 export default function VendedoresPage() {
@@ -29,15 +28,7 @@ export default function VendedoresPage() {
       header: 'Teléfono',
       accessor: 'telefono',
     },
-    {
-      header: 'Comisión',
-      accessor: 'comision',
-      cell: (row: Vendedor) => (
-        <span className="font-medium text-green-600 dark:text-green-400">
-          {row.comision}
-        </span>
-      ),
-    },
+
     {
       header: 'Ventas',
       accessor: 'ventas',
@@ -56,16 +47,14 @@ export default function VendedoresPage() {
       nombre: 'Ana García',
       correo: 'ana@ejemplo.com',
       telefono: '123-456-7890',
-      comision: '5%',
-      ventas: 150000,
+      ventas: "150000",
     },
     {
       id: '2',
       nombre: 'Carlos Ruiz',
       correo: 'carlos@ejemplo.com',
       telefono: '098-765-4321',
-      comision: '4%',
-      ventas: 120000,
+      ventas: "120000",
     },
   ];
 
@@ -97,6 +86,7 @@ export default function VendedoresPage() {
               >
                 Agregar Vendedor
               </button>
+
             </div>
 
             <Table
