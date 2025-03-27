@@ -1,7 +1,7 @@
 const express = require('express');
-const { obtenerTotalClientes } = require('./clientes.controller');
 const router = express.Router();
+const { obtenerClientes } = require('./clientes.controller');
 
-router.get('/count', obtenerTotalClientes);
+router.get('/clientes', obtenerClientes);
 
 module.exports = router;

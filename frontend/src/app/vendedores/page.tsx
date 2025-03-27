@@ -1,62 +1,50 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Table from '@/components/Table';
 
 interface Vendedor {
-  id: string;
-  nombre: string;
-  correo: string;
-  telefono: string;
-  ventas: string;
+  Nombre: string;
+  Email: string;
+  Comision: number;
+  Telefono: string;
 }
 
-export default function VendedoresPage() {
+export default function VendedorPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]); // Cambiado el nombre de setVendedor a setVendedores
 
-  // Definición de columnas para la tabla
   const columns = [
     {
       header: 'Nombre',
-      accessor: 'nombre',
+      accessor: 'Nombre',
     },
     {
       header: 'Correo',
-      accessor: 'correo',
+      accessor: 'Email', // Coincide con la API
+    },
+    {
+      header: 'Comision',
+      accessor: 'Comision',
     },
     {
       header: 'Teléfono',
-      accessor: 'telefono',
-    },
-
-    {
-      header: 'Ventas',
-      accessor: 'ventas',
-      cell: (row: Vendedor) => (
-        <span className="font-medium text-blue-600 dark:text-blue-400">
-          ${row.ventas.toLocaleString()}
-        </span>
-      ),
-    },
+      accessor: 'Telefono',
+    }
   ];
 
-  // Datos de ejemplo - En un caso real, estos vendrían de una API
-  const vendedoresData: Vendedor[] = [
-    {
-      id: '1',
-      nombre: 'Ana García',
-      correo: 'ana@ejemplo.com',
-      telefono: '123-456-7890',
-      ventas: "150000",
-    },
-    {
-      id: '2',
-      nombre: 'Carlos Ruiz',
-      correo: 'carlos@ejemplo.com',
-      telefono: '098-765-4321',
-      ventas: "120000",
-    },
-  ];
+  useEffect(() => {
+    fetch('http://localhost:5002/api/vendedores')
+      .then(response => response.json())
+      .then(data => {
+        if (data.totalVendedores) { // Cambiado de vendedores a totalVendedores
+          setVendedores(data.totalVendedores);
+        } else {
+          console.error('La respuesta de la API no contiene vendedores:', data);
+        }
+      })
+      .catch(error => console.error('Error:', error));
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -79,19 +67,15 @@ export default function VendedoresPage() {
             <div className="flex justify-end mb-4">
               <button
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                onClick={() => {
-                  // Aquí irá la lógica para agregar nuevo vendedor
-                  console.log('Agregar nuevo vendedor');
-                }}
+                onClick={() => console.log('Agregar nuevo vendedor')}
               >
                 Agregar Vendedor
               </button>
-
             </div>
 
             <Table
               columns={columns}
-              data={vendedoresData}
+              data={vendedores} // Cambiado de productos a vendedores
               title="Lista de Vendedores"
             />
           </div>

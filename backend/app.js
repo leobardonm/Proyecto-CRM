@@ -7,6 +7,7 @@ const { conectarDB } = require('./config/database');
 const clientesRoutes = require('./clientes/clientes.routes');
 const negociacionesRoutes = require('./negociaciones/negociaciones.routes');
 const productosRoutes = require('./productos/productos.routes');
+const vendedoresRoutes = require('./vendedores/vendedores.routes');
 
 dotenv.config();
 const app = express();
@@ -23,17 +24,7 @@ conectarDB();
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/negociaciones', negociacionesRoutes);
 app.use('/api/productos', productosRoutes);
-
-// Middleware para manejar rutas no encontradas (404)
-app.use((req, res, next) => {
-  res.status(404).json({ error: 'Ruta no encontrada' });
-});
-
-// Middleware para manejar errores no controlados
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Ocurrió un error inesperado en el servidor.' });
-});
+app.use('/api/vendedores', vendedoresRoutes);
 
 // Iniciar servidor
 app.listen(PUERTO, () => {
