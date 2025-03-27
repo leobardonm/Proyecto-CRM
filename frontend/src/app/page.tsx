@@ -14,6 +14,7 @@ import {
   Legend
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import AIAssistantButton from '@/components/AIAssistantButton';
 
 ChartJS.register(
   CategoryScale,
@@ -227,6 +228,9 @@ export default function Home() {
           </div>
         </main>
       </div>
+
+      {/* AI Assistant Button */}
+      <AIAssistantButton />
     </div>
   );
 }
