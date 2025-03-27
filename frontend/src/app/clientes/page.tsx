@@ -1,63 +1,169 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
-import Table from '@/components/Table';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+import AIAssistantButton from '@/components/AIAssistantButton';
 
-interface Cliente {
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+interface NegociacionItem {
   id: string;
-  nombre: string;
-  correo: string;
-  telefono: string;
-  vendedor: string;
+  cliente: string;
+  monto: string;
 }
 
-export default function ClientesPage() {
+interface EstadosNegociacion {
+  [key: string]: NegociacionItem[];
+}
+
+export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [negociaciones, setNegociaciones] = useState<EstadosNegociacion>({
+    'en-proceso': [
+      { id: '1', cliente: 'Cliente A', monto: '$5,000' },
+      { id: '2', cliente: 'Cliente B', monto: '$3,200' },
+    ],
+    'cancelada': [
+      { id: '3', cliente: 'Cliente C', monto: '$7,800' },
+    ],
+    'terminada': [
+      { id: '4', cliente: 'Cliente D', monto: '$10,500' },
+    ],
+  });
 
-  // Definición de columnas para la tabla
-  const columns = [
-    {
-      header: 'Nombre',
-      accessor: 'nombre',
-    },
-    {
-      header: 'Correo',
-      accessor: 'correo',
-    },
-    {
-      header: 'Teléfono',
-      accessor: 'telefono',
-    },
-    {
-      header: 'Vendedor',
-      accessor: 'vendedor',
-      // Ejemplo de celda personalizada
-      cell: (row: Cliente) => (
-        <span className="text-blue-600 dark:text-blue-400">
-          {row.vendedor}
-        </span>
-      ),
-    },
-  ];
+  // State for client count and sales data
+  const [clientCount, setClientCount] = useState<number>(0);
+  const [negotiationCount, setNegotiationCount] = useState<number>(0);
+  const [salesData, setSalesData] = useState({
+    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+    datasets: [
+      {
+        label: 'Ventas Completadas',
+        data: [12000, 19000, 15000, 25000, 22000, 30000],
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.1,
+      },
+    ],
+  });
 
-  // Datos de ejemplo - En un caso real, estos vendrían de una API
-  const clientesData: Cliente[] = [
-    {
-      id: '1',
-      nombre: 'Juan Pérez',
-      correo: 'juan@ejemplo.com',
-      telefono: '123-456-7890',
-      vendedor: 'Ana García',
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      title: {
+        display: true,
+        text: 'Ventas Completadas por Mes',
+      },
     },
-    {
-      id: '2',
-      nombre: 'María López',
-      correo: 'maria@ejemplo.com',
-      telefono: '098-765-4321',
-      vendedor: 'Carlos Ruiz',
-    },
-    // Agrega más datos según necesites
-  ];
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(this: any, tickValue: number | string) {
+            return '$' + Number(tickValue).toLocaleString();
+          }
+        }
+      }
+    }
+  };
+
+  // Fetch the client count from the backend API
+  const fetchClientCount = async () => {
+    try {
+      const response = await fetch('http://localhost:5002/api/clientes/count');
+      const data = await response.json();
+      setClientCount(data.totalClientes);
+    } catch (error) {
+      console.error('Error fetching client count:', error);
+    }
+  };
+
+  const fetchNegotiationCount = async () => {
+    try {
+      const response = await fetch('http://localhost:5002/api/negociaciones/count');
+      const data = await response.json();
+      setNegotiationCount(data.totalNegociacion);
+    } catch (error) {
+      console.error('Error fetching negotiation count:', error);
+    }
+  };
+
+  // Fetch sales data
+  const fetchSalesData = async () => {
+    try {
+      const response = await fetch('http://localhost:5002/api/ventas/mensuales');
+      const data = await response.json();
+      setSalesData({
+        labels: data.meses,
+        datasets: [
+          {
+            label: 'Ventas Completadas',
+            data: data.ventas,
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1,
+          },
+        ],
+      });
+    } catch (error) {
+      console.error('Error fetching sales data:', error);
+    }
+  };
+
+  // Fetch client count when the component mounts
+  useEffect(() => {
+    fetchClientCount();
+    fetchNegotiationCount();
+    fetchSalesData();
+  }, []);
+
+  const onDragEnd = (result: any) => {
+    const { source, destination } = result;
+    if (!destination) return;
+
+    if (source.droppableId === destination.droppableId) {
+      const items = Array.from(negociaciones[source.droppableId]);
+      const [reorderedItem] = items.splice(source.index, 1);
+      items.splice(destination.index, 0, reorderedItem);
+
+      setNegociaciones({
+        ...negociaciones,
+        [source.droppableId]: items,
+      });
+    } else {
+      const sourceItems = Array.from(negociaciones[source.droppableId]);
+      const destItems = Array.from(negociaciones[destination.droppableId]);
+      const [removedItem] = sourceItems.splice(source.index, 1);
+      destItems.splice(destination.index, 0, removedItem);
+
+      setNegociaciones({
+        ...negociaciones,
+        [source.droppableId]: sourceItems,
+        [destination.droppableId]: destItems,
+      });
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -66,37 +172,65 @@ export default function ClientesPage() {
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
       />
 
+      {/* Main Content */}
       <div className="flex-1">
+        {/* Header */}
         <header className="bg-white dark:bg-gray-800 shadow-sm">
           <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Clientes
-            </h1>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Dashboard</h1>
           </div>
         </header>
 
-        <main className="h-full pb-16 overflow-y-auto">
-          <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
-            <div className="flex justify-end mb-4">
-              <button
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                onClick={() => {
-                  // Aquí irá la lógica para agregar nuevo cliente
-                  console.log('Agregar nuevo cliente');
-                }}
-              >
-                Agregar Cliente
-              </button>
+        <main className="py-6">
+          <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 gap-5 mt-2 sm:grid-cols-2 lg:grid-cols-4">
+              <Link href="/clientes" className="block">
+                <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Clientes</h3>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">{clientCount}</span>
+                  </div>
+                </div>
+              </Link>
+              <Link href="/negociaciones" className="block">
+                <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Negociaciones</h3>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">{negotiationCount}</span>
+                  </div>
+                </div>
+              </Link>
+              <Link href="/productos" className="block">
+                <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Ventas del mes</h3>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">$24.5k</span>
+                  </div>
+                </div>
+              </Link>
+              <Link href="/vendedores" className="block">
+                <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Vendedores</h3>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">12</span>
+                  </div>
+                </div>
+              </Link>
             </div>
 
-            <Table
-              columns={columns}
-              data={clientesData}
-              title="Lista de Clientes"
-            />
+            {/* Sales Chart */}
+            <div className="mt-8">
+              <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800">
+                <Line options={chartOptions} data={salesData} />
+              </div>
+            </div>
           </div>
         </main>
       </div>
+
+      {/* AI Assistant Button */}
+      <AIAssistantButton />
     </div>
   );
 }

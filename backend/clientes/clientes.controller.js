@@ -1,14 +1,13 @@
 const { sql } = require('../config/database');
 
-const obtenerClientes = async (req, res) => {
+const obtenerTotalClientes = async (req, res) => {
   try {
-    const solicitud = new sql.Request();
-    const resultado = await solicitud.query('SELECT * FROM Cliente');
-    
-    res.json({ cliente: resultado.recordset });
+    const solicitud = new sql.Request(); // Create a new Request instance
+    const resultado = await solicitud.query('SELECT COUNT(*) as total FROM Cliente');
+    res.status(200).json({ totalClientes: resultado.recordset[0].total });
   } catch (error) {
-    res.status(500).json({ error: `Error al obtener Clientes: ${error.message}` });
+    res.status(500).json({ error: `Error al obtener el número de clientes: ${error.message}` });
   }
 };
 
-module.exports = { obtenerClientes };
+module.exports = { obtenerTotalClientes };
