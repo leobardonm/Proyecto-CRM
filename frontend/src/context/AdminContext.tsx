@@ -10,18 +10,26 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export function AdminProvider({ children }: { children: React.ReactNode }) {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('isAdmin');
+      return saved === 'true';
+    }
+    return false;
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.altKey && e.ctrlKey && e.key === '1') {
-        setIsAdmin(prev => !prev);
+        const newAdminState = !isAdmin;
+        setIsAdmin(newAdminState);
+        localStorage.setItem('isAdmin', newAdminState.toString());
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isAdmin]);
 
   return (
     <AdminContext.Provider value={{ isAdmin, setIsAdmin }}>

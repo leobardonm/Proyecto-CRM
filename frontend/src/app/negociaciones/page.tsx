@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import NegociacionCard from '@/components/NegociacionCard';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import AdminMode from '@/components/AdminMode';
 
 interface NegociacionItem {
   id: string;
@@ -159,7 +160,7 @@ export default function Negociaciones() {
         isOpen={isSidebarOpen} 
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
       />
-
+      <AdminMode />
       <div className="flex-1">
         <header className="bg-white dark:bg-gray-800 shadow-sm">
           <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
