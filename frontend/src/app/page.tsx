@@ -89,12 +89,25 @@ export default function Home() {
     }
   };
 
+  // Utility function to check if a response is JSON
+  const isJSON = async (response: Response) => {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return true;
+    }
+    return false;
+  };
+
   // Fetch the client count from the backend API
   const fetchClientCount = async () => {
     try {
       const response = await fetch('http://localhost:5002/api/clientes/count');
-      const data = await response.json();
-      setClientCount(data.totalClientes);
+      if (await isJSON(response)) {
+        const data = await response.json();
+        setClientCount(data.totalClientes);
+      } else {
+        console.error('Invalid JSON response for client count');
+      }
     } catch (error) {
       console.error('Error fetching client count:', error);
     }
@@ -103,8 +116,12 @@ export default function Home() {
   const fetchNegotiationCount = async () => {
     try {
       const response = await fetch('http://localhost:5002/api/negociaciones/count');
-      const data = await response.json();
-      setNegotiationCount(data.totalNegociacion);
+      if (await isJSON(response)) {
+        const data = await response.json();
+        setNegotiationCount(data.totalNegociacion);
+      } else {
+        console.error('Invalid JSON response for negotiation count');
+      }
     } catch (error) {
       console.error('Error fetching negotiation count:', error);
     }
@@ -114,18 +131,22 @@ export default function Home() {
   const fetchSalesData = async () => {
     try {
       const response = await fetch('http://localhost:5002/api/ventas/mensuales');
-      const data = await response.json();
-      setSalesData({
-        labels: data.meses,
-        datasets: [
-          {
-            label: 'Ventas Completadas',
-            data: data.ventas,
-            borderColor: 'rgb(75, 192, 192)',
-            tension: 0.1,
-          },
-        ],
-      });
+      if (await isJSON(response)) {
+        const data = await response.json();
+        setSalesData({
+          labels: data.meses,
+          datasets: [
+            {
+              label: 'Ventas Completadas',
+              data: data.ventas,
+              borderColor: 'rgb(75, 192, 192)',
+              tension: 0.1,
+            },
+          ],
+        });
+      } else {
+        console.error('Invalid JSON response for sales data');
+      }
     } catch (error) {
       console.error('Error fetching sales data:', error);
     }
@@ -202,7 +223,7 @@ export default function Home() {
                 </div>
               </Link>
               <Link href="/productos" className="block">
-                <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg.gray-700 transition-colors duration-200">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Ventas del mes</h3>
                     <span className="text-2xl font-bold text-gray-900 dark:text-white">$24.5k</span>
