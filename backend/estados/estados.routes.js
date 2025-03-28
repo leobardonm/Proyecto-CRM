@@ -2,22 +2,22 @@ const express = require('express');
 const router = express.Router();
 const { sql } = require('../config/database');
 
-// Obtener todos los clientes
+// Obtener todos los estados
 router.get('/', async (req, res) => {
     try {
-        const result = await sql.query`SELECT * FROM Cliente`;
+        const result = await sql.query`SELECT * FROM Estado`;
         res.json(result.recordset);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Obtener un cliente por ID
+// Obtener un estado por ID
 router.get('/:id', async (req, res) => {
     try {
-        const result = await sql.query`SELECT * FROM Cliente WHERE Id = ${req.params.id}`;
+        const result = await sql.query`SELECT * FROM Estado WHERE Id = ${req.params.id}`;
         if (result.recordset.length === 0) {
-            return res.status(404).json({ message: 'Cliente no encontrado' });
+            return res.status(404).json({ message: 'Estado no encontrado' });
         }
         res.json(result.recordset[0]);
     } catch (error) {
@@ -25,14 +25,14 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Crear un nuevo cliente
+// Crear un nuevo estado
 router.post('/', async (req, res) => {
     try {
-        const { Nombre, Direccion, Telefono, Email } = req.body;
+        const { Id, Descripcion } = req.body;
         const result = await sql.query`
-            INSERT INTO Cliente (Nombre, Direccion, Telefono, Email)
-            OUTPUT INSERTED.*
-            VALUES (${Nombre}, ${Direccion}, ${Telefono}, ${Email});
+            INSERT INTO Estado (Id, Descripcion)
+            VALUES (${Id}, ${Descripcion});
+            SELECT * FROM Estado WHERE Id = ${Id};
         `;
         res.status(201).json(result.recordset[0]);
     } catch (error) {
@@ -40,21 +40,18 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Actualizar un cliente
+// Actualizar un estado
 router.put('/:id', async (req, res) => {
     try {
-        const { Nombre, Direccion, Telefono, Email } = req.body;
+        const { Descripcion } = req.body;
         const result = await sql.query`
-            UPDATE Cliente 
-            SET Nombre = ${Nombre},
-                Direccion = ${Direccion},
-                Telefono = ${Telefono},
-                Email = ${Email}
+            UPDATE Estado 
+            SET Descripcion = ${Descripcion}
             WHERE Id = ${req.params.id};
-            SELECT * FROM Cliente WHERE Id = ${req.params.id};
+            SELECT * FROM Estado WHERE Id = ${req.params.id};
         `;
         if (result.rowsAffected[0] === 0) {
-            return res.status(404).json({ message: 'Cliente no encontrado' });
+            return res.status(404).json({ message: 'Estado no encontrado' });
         }
         res.json(result.recordset[0]);
     } catch (error) {
@@ -62,17 +59,17 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// Eliminar un cliente
+// Eliminar un estado
 router.delete('/:id', async (req, res) => {
     try {
-        const result = await sql.query`DELETE FROM Cliente WHERE Id = ${req.params.id}`;
+        const result = await sql.query`DELETE FROM Estado WHERE Id = ${req.params.id}`;
         if (result.rowsAffected[0] === 0) {
-            return res.status(404).json({ message: 'Cliente no encontrado' });
+            return res.status(404).json({ message: 'Estado no encontrado' });
         }
-        res.json({ message: 'Cliente eliminado exitosamente' });
+        res.json({ message: 'Estado eliminado exitosamente' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-module.exports = router;
+module.exports = router; 
