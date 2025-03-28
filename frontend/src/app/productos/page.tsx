@@ -35,7 +35,7 @@ export default function ProductoPage() {
     {
       header: 'Precio',
       accessor: 'Precio',
-      cell: (row: Producto) => row.Precio.toLocaleString(), // Fixed syntax error
+      cell: (row: Producto) => `$${row.Precio.toLocaleString()}`      
     }
   ];
 
@@ -66,8 +66,8 @@ export default function ProductoPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData, // Fixed typo (was FormData)
-          Precio: parseFloat(formData.Precio), // Fixed typo (was FormData.Precio)
+          ...formData,
+          Precio: parseFloat(formData.Precio)
         }),
       });
       

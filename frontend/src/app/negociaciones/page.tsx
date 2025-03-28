@@ -14,8 +14,20 @@ interface EstadosNegociacion {
   [key: string]: NegociacionItem[];
 }
 
+interface NegociacionFormData {
+  cliente: string;
+  monto: string;
+  estado: 'en-proceso' | 'cancelada' | 'terminada';
+}
+
 export default function Negociaciones() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<NegociacionFormData>({
+    cliente: '',
+    monto: '',
+    estado: 'en-proceso'
+  });
   const [negociaciones, setNegociaciones] = useState<EstadosNegociacion>({
     'en-proceso': [
       { id: '1', cliente: 'Cliente A', monto: '$5,000' },
@@ -28,6 +40,34 @@ export default function Negociaciones() {
       { id: '4', cliente: 'Cliente D', monto: '$10,500' },
     ],
   });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('http://localhost:5002/api/negociaciones', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      if (response.ok) {
+        const newNegociacion = await response.json();
+        // Update local state
+        setNegociaciones(prev => ({
+          ...prev,
+          [formData.estado]: [...prev[formData.estado], newNegociacion]
+        }));
+        
+        // Reset form and close modal
+        setFormData({ cliente: '', monto: '', estado: 'en-proceso' });
+        setIsModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   const handleEdit = async (id: string, data: { cliente: string; monto: string }) => {
     try {
@@ -64,7 +104,7 @@ export default function Negociaciones() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/negociaciones/${id}`, {
+      const response = await fetch(`http://localhost:5002/api/negociaciones/${id}`, {
         method: 'DELETE',
       });
 
@@ -126,11 +166,14 @@ export default function Negociaciones() {
             <div className="flex justify-between items-center">
               <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Negociaciones</h1>
               <div className="flex gap-3">
-                <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center">
+                <button 
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+                >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Nueva Negociación
+                  Nueva negociación
                 </button>
                 <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,6 +242,85 @@ export default function Negociaciones() {
           </div>
         </main>
       </div>
+
+      {/* Modal for adding new negotiation */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+            <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Nueva negociación</h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Cliente
+                </label>
+                <input
+                  type="text"
+                  value={formData.cliente}
+                  onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Monto
+                </label>
+                <input
+                  type="text"
+                  value={formData.monto}
+                  onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                  placeholder="$0.00"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Estado
+                </label>
+                <select
+                  value={formData.estado}
+                  onChange={(e) => setFormData({ ...formData, estado: e.target.value as NegociacionFormData['estado'] })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                >
+                  <option value="en-proceso">En Proceso</option>
+                  <option value="cancelada">Cancelada</option>
+                  <option value="terminada">Terminada</option>
+                </select>
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                >
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
