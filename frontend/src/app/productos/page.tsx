@@ -6,38 +6,67 @@ import AdminProtected from '@/components/AdminProtected';
 import AdminMode from '@/components/AdminMode';
 
 interface Producto {
-  ID: number; // Asegúrate de que coincida con el nombre devuelto por el backend
+  IDProducto: number;
   Descripcion: string;
   Precio: number;
+  Stock: number;
 }
 
 interface ProductoFormData {
   Descripcion: string;
   Precio: string;
+  Stock: string;
 }
 
 export default function ProductoPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null);
   const [formData, setFormData] = useState<ProductoFormData>({
     Descripcion: '',
     Precio: '',
+    Stock: '',
   });
 
   const columns = [
     {
-      header: 'Id',
-      accessor: 'ID', // Coincidir con el backend
+      header: 'ID',
+      accessor: 'IDProducto',
     },
     {
-      header: 'Descripcion',
+      header: 'Descripción',
       accessor: 'Descripcion',
     },
     {
       header: 'Precio',
       accessor: 'Precio',
-      cell: (row: Producto) => `$${row.Precio.toLocaleString()}`      
+      cell: (row: Producto) => `$${row.Precio.toLocaleString()}`
+    },
+    {
+      header: 'Stock',
+      accessor: 'Stock',
+    },
+    {
+      header: 'Acciones',
+      accessor: 'IDProducto',
+      cell: (row: Producto) => (
+        <div className="flex space-x-2">
+          <button
+            onClick={() => handleEdit(row)}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            Editar
+          </button>
+          <button
+            onClick={() => handleDelete(row.IDProducto)}
+            className="text-red-600 hover:text-red-800"
+          >
+            Eliminar
+          </button>
+        </div>
+      ),
     }
   ];
 
@@ -47,12 +76,12 @@ export default function ProductoPage() {
 
   const fetchProductos = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/productos/productos');
-      const data = await response.json();
-      if (data.productos) {
-        setProductos(data.productos);
+      const response = await fetch('http://localhost:5002/api/productos');
+      if (response.ok) {
+        const data = await response.json();
+        setProductos(data);
       } else {
-        console.error('La respuesta de la API no contiene productos:', data);
+        console.error('Error al obtener productos:', response.statusText);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -62,25 +91,68 @@ export default function ProductoPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5002/api/productos', {
-        method: 'POST',
+      const url = isEditMode 
+        ? `http://localhost:5002/api/productos/${selectedProducto?.IDProducto}`
+        : 'http://localhost:5002/api/productos';
+      
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...formData,
-          Precio: parseFloat(formData.Precio)
+          Precio: parseFloat(formData.Precio),
+          Stock: parseInt(formData.Stock)
         }),
       });
       
       if (response.ok) {
         setIsModalOpen(false);
-        setFormData({ Descripcion: '', Precio: '' });
-        fetchProductos(); // Refresh the list
+        setIsEditMode(false);
+        setSelectedProducto(null);
+        setFormData({ Descripcion: '', Precio: '', Stock: '' });
+        fetchProductos();
       }
     } catch (error) {
       console.error('Error:', error);
     }
+  };
+
+  const handleEdit = (producto: Producto) => {
+    setSelectedProducto(producto);
+    setFormData({
+      Descripcion: producto.Descripcion,
+      Precio: producto.Precio.toString(),
+      Stock: producto.Stock.toString()
+    });
+    setIsEditMode(true);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
+      try {
+        const response = await fetch(`http://localhost:5002/api/productos/${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          fetchProductos();
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setIsEditMode(false);
+    setSelectedProducto(null);
+    setFormData({ Descripcion: '', Precio: '', Stock: '' });
   };
 
   return (
@@ -120,14 +192,16 @@ export default function ProductoPage() {
           </main>
         </div>
 
-        {/* Modal for adding new product */}
+        {/* Modal for adding/editing product */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-transparent bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
               <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Nuevo Producto</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {isEditMode ? 'Editar Producto' : 'Nuevo Producto'}
+                </h2>
                 <button
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleModalClose}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -151,29 +225,47 @@ export default function ProductoPage() {
                 </div>
 
                 <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Precio
-                </label>
-                <input
-                  type="text"
-                  value={formData.Precio}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Permite números con hasta dos decimales
-                    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
-                      setFormData({ ...formData, Precio: value });
-                    }
-                  }}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                  placeholder="0.00"
-                  required
-                />
-              </div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Precio
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.Precio}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+                        setFormData({ ...formData, Precio: value });
+                      }
+                    }}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Stock
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.Stock}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || /^\d+$/.test(value)) {
+                        setFormData({ ...formData, Stock: value });
+                      }
+                    }}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                    placeholder="0"
+                    required
+                  />
+                </div>
                 
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
                     type="button"
-                    onClick={() => setIsModalOpen(false)}
+                    onClick={handleModalClose}
                     className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                   >
                     Cancelar
@@ -182,7 +274,7 @@ export default function ProductoPage() {
                     type="submit"
                     className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
                   >
-                    Guardar
+                    {isEditMode ? 'Actualizar' : 'Guardar'}
                   </button>
                 </div>
               </form>

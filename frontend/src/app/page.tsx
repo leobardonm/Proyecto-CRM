@@ -54,6 +54,7 @@ export default function Home() {
   // State for client count and sales data
   const [clientCount, setClientCount] = useState<number>(0);
   const [negotiationCount, setNegotiationCount] = useState<number>(0);
+  const [vendorCount, setVendorCount] = useState<number>(0);
   const [salesData, setSalesData] = useState({
     labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
     datasets: [
@@ -101,10 +102,10 @@ export default function Home() {
   // Fetch the client count from the backend API
   const fetchClientCount = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/clientes/count');
+      const response = await fetch('http://localhost:5002/api/clientes');
       if (await isJSON(response)) {
         const data = await response.json();
-        setClientCount(data.totalClientes);
+        setClientCount(data.length);
       } else {
         console.error('Invalid JSON response for client count');
       }
@@ -115,10 +116,10 @@ export default function Home() {
 
   const fetchNegotiationCount = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/negociaciones/count');
+      const response = await fetch('http://localhost:5002/api/negociaciones');
       if (await isJSON(response)) {
         const data = await response.json();
-        setNegotiationCount(data.totalNegociacion);
+        setNegotiationCount(data.length);
       } else {
         console.error('Invalid JSON response for negotiation count');
       }
@@ -130,15 +131,36 @@ export default function Home() {
   // Fetch sales data
   const fetchSalesData = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/ventas/mensuales');
+      const response = await fetch('http://localhost:5002/api/negociaciones');
       if (await isJSON(response)) {
         const data = await response.json();
+        
+        // Filtrar solo las negociaciones completadas (Estado = 3)
+        const completedSales = data.filter((n: any) => n.Estado === 3);
+        
+        // Agrupar por mes
+        const monthlySales = completedSales.reduce((acc: { [key: string]: number }, sale: any) => {
+          const date = new Date(sale.FechaFin);
+          const month = date.toLocaleString('es-ES', { month: 'short' });
+          const amount = sale.Total;
+          
+          if (!acc[month]) {
+            acc[month] = 0;
+          }
+          acc[month] += amount;
+          return acc;
+        }, {});
+
+        // Convertir a formato para el gráfico
+        const months = Object.keys(monthlySales);
+        const sales = Object.values(monthlySales) as number[];
+
         setSalesData({
-          labels: data.meses,
+          labels: months,
           datasets: [
             {
               label: 'Ventas Completadas',
-              data: data.ventas,
+              data: sales,
               borderColor: 'rgb(75, 192, 192)',
               tension: 0.1,
             },
@@ -152,11 +174,27 @@ export default function Home() {
     }
   };
 
+  // Fetch vendedores count
+  const fetchVendorCount = async () => {
+    try {
+      const response = await fetch('http://localhost:5002/api/vendedores');
+      if (await isJSON(response)) {
+        const data = await response.json();
+        setVendorCount(data.totalVendedores.length);
+      } else {
+        console.error('Invalid JSON response for vendor count');
+      }
+    } catch (error) {
+      console.error('Error fetching vendor count:', error);
+    }
+  };
+
   // Fetch client count when the component mounts
   useEffect(() => {
     fetchClientCount();
     fetchNegotiationCount();
     fetchSalesData();
+    fetchVendorCount();
   }, []);
 
   const onDragEnd = (result: any) => {
@@ -234,7 +272,7 @@ export default function Home() {
                 <div className="p-5 bg-white rounded-lg shadow dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Vendedores</h3>
-                    <span className="text-2xl font-bold text-gray-900 dark:text-white">12</span>
+                      <span className="text-2xl font-bold text-gray-900 dark:text-white">{vendorCount}</span>
                   </div>
                 </div>
               </Link>

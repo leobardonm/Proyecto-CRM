@@ -1,76 +1,89 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Table from '@/components/Table';
 import AdminProtected from '@/components/AdminProtected';
 import AdminMode from '@/components/AdminMode';
 
 interface Vendedor {
-  id: string;
-  nombre: string;
-  correo: string;
-  telefono: string;
-  ventas: string;
+  Id: number;
+  Nombre: string;
+  Email: string;
+  Telefono: string;
+  IdEmpresa: number;
+  EmpresaNombre?: string;
 }
 
 interface VendedorFormData {
-  nombre: string;
-  correo: string;
-  telefono: string;
+  Nombre: string;
+  Email: string;
+  Telefono: string;
+  IdEmpresa: number;
 }
 
 export default function VendedoresPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [empresas, setEmpresas] = useState<{ IDEmpresa: number; Nombre: string; }[]>([]);
   const [formData, setFormData] = useState<VendedorFormData>({
-    nombre: '',
-    correo: '',
-    telefono: '',
+    Nombre: '',
+    Email: '',
+    Telefono: '',
+    IdEmpresa: 0,
   });
 
   // Definición de columnas para la tabla
   const columns = [
     {
       header: 'Nombre',
-      accessor: 'nombre',
+      accessor: 'Nombre',
     },
     {
       header: 'Correo',
-      accessor: 'correo',
+      accessor: 'Email',
     },
     {
       header: 'Teléfono',
-      accessor: 'telefono',
+      accessor: 'Telefono',
     },
-
     {
-      header: 'Ventas',
-      accessor: 'ventas',
-      cell: (row: Vendedor) => (
-        <span className="font-medium text-blue-600 dark:text-blue-400">
-          ${row.ventas.toLocaleString()}
-        </span>
-      ),
+      header: 'Empresa',
+      accessor: 'EmpresaNombre',
     },
   ];
 
-  // Datos de ejemplo - En un caso real, estos vendrían de una API
-  const vendedoresData: Vendedor[] = [
-    {
-      id: '1',
-      nombre: 'Ana García',
-      correo: 'ana@ejemplo.com',
-      telefono: '123-456-7890',
-      ventas: "150000",
-    },
-    {
-      id: '2',
-      nombre: 'Carlos Ruiz',
-      correo: 'carlos@ejemplo.com',
-      telefono: '098-765-4321',
-      ventas: "120000",
-    },
-  ];
+  // Función para obtener los vendedores
+  const fetchVendedores = async () => {
+    try {
+      const response = await fetch('http://localhost:5002/api/vendedores');
+      if (response.ok) {
+        const data = await response.json();
+        setVendedores(data); // La API ya devuelve el array directamente
+      }
+    } catch (error) {
+      console.error('Error fetching vendedores:', error);
+    }
+  };
+
+  // Función para obtener las empresas
+  const fetchEmpresas = async () => {
+    try {
+      const response = await fetch('http://localhost:5002/api/empresas');
+      if (response.ok) {
+        const data = await response.json();
+        setEmpresas(data);
+      }
+    } catch (error) {
+      console.error('Error fetching empresas:', error);
+    }
+  };
+
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    fetchVendedores();
+    fetchEmpresas();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,8 +98,8 @@ export default function VendedoresPage() {
       
       if (response.ok) {
         setIsModalOpen(false);
-        setFormData({ nombre: '', correo: '', telefono: '' });
-        // Here you would typically refresh the vendedores list
+        setFormData({ Nombre: '', Email: '', Telefono: '', IdEmpresa: 0 });
+        fetchVendedores(); // Recargar la lista de vendedores
       }
     } catch (error) {
       console.error('Error:', error);
@@ -119,12 +132,11 @@ export default function VendedoresPage() {
                 >
                   Agregar vendedor
                 </button>
-
               </div>
 
               <Table
                 columns={columns}
-                data={vendedoresData}
+                data={vendedores}
                 title="Lista de Vendedores"
               />
             </div>
@@ -154,8 +166,8 @@ export default function VendedoresPage() {
                   </label>
                   <input
                     type="text"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    value={formData.Nombre}
+                    onChange={(e) => setFormData({ ...formData, Nombre: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                     required
                   />
@@ -167,8 +179,8 @@ export default function VendedoresPage() {
                   </label>
                   <input
                     type="email"
-                    value={formData.correo}
-                    onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+                    value={formData.Email}
+                    onChange={(e) => setFormData({ ...formData, Email: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                     required
                   />
@@ -180,11 +192,30 @@ export default function VendedoresPage() {
                   </label>
                   <input
                     type="tel"
-                    value={formData.telefono}
-                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                    value={formData.Telefono}
+                    onChange={(e) => setFormData({ ...formData, Telefono: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                     required
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Empresa
+                  </label>
+                  <select
+                    value={formData.IdEmpresa}
+                    onChange={(e) => setFormData({ ...formData, IdEmpresa: Number(e.target.value) })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                    required
+                  >
+                    <option value="">Seleccione una empresa</option>
+                    {empresas.map((empresa) => (
+                      <option key={empresa.IDEmpresa} value={empresa.IDEmpresa}>
+                        {empresa.Nombre}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div className="flex justify-end space-x-3 mt-6">

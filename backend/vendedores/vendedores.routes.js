@@ -42,6 +42,11 @@ router.post('/', async (req, res) => {
             INSERT INTO Vendedor (Nombre, Telefono, Email, IdEmpresa)
             OUTPUT INSERTED.*
             VALUES (${Nombre}, ${Telefono}, ${Email}, ${IdEmpresa});
+            
+            SELECT v.*, e.Nombre as EmpresaNombre
+            FROM Vendedor v
+            INNER JOIN Empresa e ON v.IdEmpresa = e.IDEmpresa
+            WHERE v.Id = SCOPE_IDENTITY();
         `;
         res.status(201).json(result.recordset[0]);
     } catch (error) {
@@ -60,6 +65,7 @@ router.put('/:id', async (req, res) => {
                 Email = ${Email},
                 IdEmpresa = ${IdEmpresa}
             WHERE Id = ${req.params.id};
+            
             SELECT v.*, e.Nombre as EmpresaNombre
             FROM Vendedor v
             INNER JOIN Empresa e ON v.IdEmpresa = e.IDEmpresa

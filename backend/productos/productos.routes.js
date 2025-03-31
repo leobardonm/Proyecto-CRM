@@ -32,7 +32,7 @@ router.post('/', async (req, res) => {
         const result = await sql.query`
             INSERT INTO Productos (Stock, Descripcion, Precio)
             OUTPUT INSERTED.*
-            VALUES (${Stock}, ${Descripcion}, ${Precio});
+            VALUES (${parseInt(Stock)}, ${Descripcion}, ${parseFloat(Precio)});
         `;
         res.status(201).json(result.recordset[0]);
     } catch (error) {
@@ -46,9 +46,9 @@ router.put('/:id', async (req, res) => {
         const { Stock, Descripcion, Precio } = req.body;
         const result = await sql.query`
             UPDATE Productos 
-            SET Stock = ${Stock},
+            SET Stock = ${parseInt(Stock)},
                 Descripcion = ${Descripcion},
-                Precio = ${Precio}
+                Precio = ${parseFloat(Precio)}
             WHERE IDProducto = ${req.params.id};
             SELECT * FROM Productos WHERE IDProducto = ${req.params.id};
         `;
