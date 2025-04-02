@@ -1,57 +1,174 @@
 import { DraggableProvided } from '@hello-pangea/dnd';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+interface Producto {
+  IDProducto: number;
+  Descripcion: string;
+  Precio: number;
+  Stock: number;
+}
+
+interface Cliente {
+  Id: number;
+  Nombre: string;
+  Email: string;
+}
+
+interface Vendedor {
+  Id: number;
+  Nombre: string;
+  Email: string;
+}
+
+interface ProductoNegociacion {
+  IDProducto: number;
+  Cantidad: number;
+  PrecioUnitario: number;
+  Subtotal: number;
+}
 
 interface NegociacionCardProps {
   id: string;
   cliente: string;
-  monto: string;
-  provided: DraggableProvided;
-  onEdit: (id: string, data: { cliente: string; monto: string }) => void;
+  vendedor: string;
+  productos: ProductoNegociacion[];
+  total: number;
+  comision: number;
+  provided?: DraggableProvided;
+  onEdit: (id: string, data: {
+    cliente: string;
+    vendedor: string;
+    productos: ProductoNegociacion[];
+    total: number;
+    comision: number;
+  }) => void;
   onDelete: (id: string) => void;
 }
 
 export default function NegociacionCard({ 
   id, 
   cliente: initialCliente, 
-  monto: initialMonto, 
+  vendedor: initialVendedor,
+  productos: initialProductos = [],
+  total: initialTotal,
+  comision: initialComision,
   provided,
   onEdit,
   onDelete 
 }: NegociacionCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [cliente, setCliente] = useState(initialCliente);
-  const [monto, setMonto] = useState(initialMonto);
+  const [vendedor, setVendedor] = useState(initialVendedor);
+  const [productos, setProductos] = useState<ProductoNegociacion[]>(initialProductos);
+  const [total, setTotal] = useState(initialTotal);
+  const [comision, setComision] = useState(initialComision);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [productosDisponibles, setProductosDisponibles] = useState<Producto[]>([]);
+
+  useEffect(() => {
+    // Cargar datos necesarios
+    const fetchData = async () => {
+      try {
+        const [clientesRes, vendedoresRes, productosRes] = await Promise.all([
+          fetch('http://localhost:5002/api/clientes'),
+          fetch('http://localhost:5002/api/vendedores'),
+          fetch('http://localhost:5002/api/productos')
+        ]);
+
+        const [clientesData, vendedoresData, productosData] = await Promise.all([
+          clientesRes.json(),
+          vendedoresRes.json(),
+          productosRes.json()
+        ]);
+
+        setClientes(clientesData);
+        setVendedores(vendedoresData);
+        setProductosDisponibles(productosData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const calcularTotal = (productos: ProductoNegociacion[]) => {
+    return productos.reduce((sum, prod) => sum + prod.Subtotal, 0);
+  };
+
+  const calcularComision = (total: number) => {
+    return total * 0.15; // 15% de comisión
+  };
+
+  const handleProductoChange = (index: number, cantidad: number) => {
+    const nuevosProductos = [...productos];
+    const producto = nuevosProductos[index];
+    producto.Cantidad = cantidad;
+    producto.Subtotal = cantidad * producto.PrecioUnitario;
+    
+    const nuevoTotal = calcularTotal(nuevosProductos);
+    const nuevaComision = calcularComision(nuevoTotal);
+
+    setProductos(nuevosProductos);
+    setTotal(nuevoTotal);
+    setComision(nuevaComision);
+  };
 
   const handleSave = () => {
-    onEdit(id, { cliente, monto });
+    onEdit(id, { cliente, vendedor, productos, total, comision });
     setIsEditing(false);
   };
 
   const handleCancel = () => {
     setCliente(initialCliente);
-    setMonto(initialMonto);
+    setVendedor(initialVendedor);
+    setProductos(initialProductos);
+    setTotal(initialTotal);
+    setComision(initialComision);
     setIsEditing(false);
   };
 
   return (
     <div
-      ref={provided.innerRef}
-      {...provided.draggableProps}
-      {...provided.dragHandleProps}
+      ref={provided?.innerRef}
+      {...(provided?.draggableProps || {})}
+      {...(provided?.dragHandleProps || {})}
       className="bg-white dark:bg-gray-800 p-4 rounded shadow-sm rounded-border border-gray-200 dark:border-gray-600"
     >
       <div className="flex justify-between items-start mb-2">
         {isEditing ? (
-          <input
-            type="text"
-            value={cliente}
-            onChange={(e) => setCliente(e.target.value)}
-            className="text-sm font-medium text-gray-900 dark:text-white bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
-          />
+          <div className="w-full space-y-2">
+            <select
+              value={cliente}
+              onChange={(e) => setCliente(e.target.value)}
+              className="w-full text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+            >
+              <option value="">Seleccionar Cliente</option>
+              {clientes.map((c) => (
+                <option key={c.Id} value={c.Nombre}>{c.Nombre}</option>
+              ))}
+            </select>
+            <select
+              value={vendedor}
+              onChange={(e) => setVendedor(e.target.value)}
+              className="w-full text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+            >
+              <option value="">Seleccionar Vendedor</option>
+              {vendedores.map((v) => (
+                <option key={v.Id} value={v.Nombre}>{v.Nombre}</option>
+              ))}
+            </select>
+          </div>
         ) : (
-          <p className="text-sm font-medium text-gray-900 dark:text-white">
-            {cliente}
-          </p>
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">
+              Cliente: {cliente}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Vendedor: {vendedor}
+            </p>
+          </div>
         )}
         <div className="flex gap-2">
           {isEditing ? (
@@ -95,18 +212,82 @@ export default function NegociacionCard({
           )}
         </div>
       </div>
-      {isEditing ? (
-        <input
-          type="text"
-          value={monto}
-          onChange={(e) => setMonto(e.target.value)}
-          className="text-xs text-gray-500 dark:text-gray-400 bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500 w-full"
-        />
-      ) : (
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Monto: {monto}
-        </p>
-      )}
+
+      <div className="mt-2 space-y-2">
+        {isEditing ? (
+          <div className="space-y-2">
+            {(productos || []).map((producto, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <select
+                  value={producto.IDProducto}
+                  onChange={(e) => {
+                    const nuevoProducto = productosDisponibles.find(p => p.IDProducto === Number(e.target.value));
+                    if (nuevoProducto) {
+                      const nuevosProductos = [...productos];
+                      nuevosProductos[index] = {
+                        IDProducto: nuevoProducto.IDProducto,
+                        Cantidad: 1,
+                        PrecioUnitario: nuevoProducto.Precio,
+                        Subtotal: nuevoProducto.Precio
+                      };
+                      setProductos(nuevosProductos);
+                    }
+                  }}
+                  className="text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="">Seleccionar Producto</option>
+                  {productosDisponibles.map((p) => (
+                    <option key={p.IDProducto} value={p.IDProducto}>
+                      {p.Descripcion} - ${p.Precio}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min="1"
+                  value={producto.Cantidad}
+                  onChange={(e) => handleProductoChange(index, Number(e.target.value))}
+                  className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  ${producto.Subtotal}
+                </span>
+              </div>
+            ))}
+            <button
+              onClick={() => {
+                setProductos([...(productos || []), {
+                  IDProducto: 0,
+                  Cantidad: 1,
+                  PrecioUnitario: 0,
+                  Subtotal: 0
+                }]);
+              }}
+              className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              + Agregar Producto
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">
+              Productos:
+            </p>
+            {(productos || []).map((producto, index) => (
+              <p key={index} className="text-xs text-gray-600 dark:text-gray-400">
+                {productosDisponibles.find(p => p.IDProducto === producto.IDProducto)?.Descripcion} 
+                - Cantidad: {producto.Cantidad} - ${producto.Subtotal}
+              </p>
+            ))}
+            <p className="text-sm font-medium text-gray-900 dark:text-white mt-2">
+              Total: ${total}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Comisión (15%): ${comision}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 } 

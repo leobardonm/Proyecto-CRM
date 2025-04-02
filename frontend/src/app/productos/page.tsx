@@ -34,23 +34,28 @@ export default function ProductoPage() {
     {
       header: 'ID',
       accessor: 'IDProducto',
+      key: 'id-producto'
     },
     {
       header: 'Descripción',
       accessor: 'Descripcion',
+      key: 'descripcion'
     },
     {
       header: 'Precio',
       accessor: 'Precio',
+      key: 'precio',
       cell: (row: Producto) => `$${row.Precio.toLocaleString()}`
     },
     {
       header: 'Stock',
       accessor: 'Stock',
+      key: 'stock'
     },
     {
       header: 'Acciones',
       accessor: 'IDProducto',
+      key: 'acciones',
       cell: (row: Producto) => (
         <div className="flex space-x-2">
           <button
@@ -187,6 +192,7 @@ export default function ProductoPage() {
                 columns={columns}
                 data={productos}
                 title="Lista de Productos"
+                rowKey="IDProducto"
               />
             </div>
           </main>

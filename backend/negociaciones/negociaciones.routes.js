@@ -48,7 +48,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
     try {
         const { FechaInicio, FechaFin, Total, Estado, IdCliente, IdVendedor } = req.body;
-        const comision = Total * 0.15; // 15% del total
+        const comision = Total * 0.15; // Aqui se calcula el 15% del total de la negociacion
         
         const result = await sql.query`
             INSERT INTO Negociacion (FechaInicio, FechaFin, Total, Estado, IdCliente, IdVendedor, Comision)

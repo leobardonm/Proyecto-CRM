@@ -10,13 +10,17 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export function AdminProvider({ children }: { children: React.ReactNode }) {
-  const [isAdmin, setIsAdmin] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('isAdmin');
-      return saved === 'true';
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    // Cargar el estado de admin del localStorage solo en el cliente
+    const saved = localStorage.getItem('isAdmin');
+    if (saved === 'true') {
+      setIsAdmin(true);
     }
-    return false;
-  });
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -30,6 +34,11 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isAdmin]);
+
+  // Evitar el renderizado inicial hasta que el componente esté montado
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <AdminContext.Provider value={{ isAdmin, setIsAdmin }}>

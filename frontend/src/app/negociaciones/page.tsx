@@ -1,137 +1,144 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
-import NegociacionCard from '@/components/NegociacionCard';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import NegociacionCard from '@/components/NegociacionCard';
+import AdminProtected from '@/components/AdminProtected';
 import AdminMode from '@/components/AdminMode';
 
-interface NegociacionItem {
-  id: string;
-  cliente: string;
-  monto: string;
+interface ProductoNegociacion {
+  IDProducto: number;
+  Cantidad: number;
+  PrecioUnitario: number;
+  Subtotal: number;
+}
+
+interface Negociacion {
+  IDNegociacion: number;
+  ClienteNombre: string;
+  VendedorNombre: string;
+  Productos: ProductoNegociacion[];
+  Total: number;
+  Comision: number;
+  Estado: number;
+  FechaInicio: string;
+  FechaFin: string | null;
 }
 
 interface EstadosNegociacion {
-  [key: string]: NegociacionItem[];
+  [key: string]: Negociacion[];
 }
 
-interface NegociacionFormData {
-  cliente: string;
-  monto: string;
-  estado: 'en-proceso' | 'cancelada' | 'terminada';
+interface Cliente {
+  Id: number;
+  Nombre: string;
 }
 
-export default function Negociaciones() {
+interface Vendedor {
+  Id: number;
+  Nombre: string;
+}
+
+interface Producto {
+  IDProducto: number;
+  Descripcion: string;
+  Precio: number;
+  Stock: number;
+}
+
+interface DraggableProvided {
+  draggableProps: any;
+  dragHandleProps: any;
+  innerRef: (element: HTMLElement | null) => void;
+}
+
+export default function NegociacionesPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<NegociacionFormData>({
-    cliente: '',
-    monto: '',
-    estado: 'en-proceso'
-  });
+  const [isMounted, setIsMounted] = useState(false);
   const [negociaciones, setNegociaciones] = useState<EstadosNegociacion>({
-    'en-proceso': [
-      { id: '1', cliente: 'Cliente A', monto: '$5,000' },
-      { id: '2', cliente: 'Cliente B', monto: '$3,200' },
-    ],
-    'cancelada': [
-      { id: '3', cliente: 'Cliente C', monto: '$7,800' },
-    ],
-    'terminada': [
-      { id: '4', cliente: 'Cliente D', monto: '$10,500' },
-    ],
+    'en-proceso': [],
+    'cancelada': [],
+    'terminada': []
   });
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [selectedCliente, setSelectedCliente] = useState<string>('');
+  const [selectedVendedor, setSelectedVendedor] = useState<string>('');
+  const [selectedProductos, setSelectedProductos] = useState<ProductoNegociacion[]>([]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    setIsMounted(true);
+    fetchNegociaciones();
+    fetchClientes();
+    fetchVendedores();
+    fetchProductos();
+  }, []);
+
+  const fetchNegociaciones = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/negociaciones', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-      
+      const response = await fetch('http://localhost:5002/api/negociaciones');
       if (response.ok) {
-        const newNegociacion = await response.json();
-        // Update local state
-        setNegociaciones(prev => ({
-          ...prev,
-          [formData.estado]: [...prev[formData.estado], newNegociacion]
-        }));
+        const data: Negociacion[] = await response.json();
         
-        // Reset form and close modal
-        setFormData({ cliente: '', monto: '', estado: 'en-proceso' });
-        setIsModalOpen(false);
+        // Organizar negociaciones por estado
+        const organizadas: EstadosNegociacion = {
+          'en-proceso': data.filter(n => n.Estado === 2),
+          'cancelada': data.filter(n => n.Estado === 1),
+          'terminada': data.filter(n => n.Estado === 3)
+        };
+        
+        setNegociaciones(organizadas);
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching negociaciones:', error);
     }
   };
 
-  const handleEdit = async (id: string, data: { cliente: string; monto: string }) => {
+  const fetchClientes = async () => {
     try {
-      const response = await fetch(`/api/negociaciones/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al actualizar la negociación');
+      const response = await fetch('http://localhost:5002/api/clientes');
+      if (response.ok) {
+        const data = await response.json();
+        setClientes(data);
       }
-
-      // Actualizar el estado local
-      setNegociaciones(prevNegociaciones => {
-        const newNegociaciones = { ...prevNegociaciones };
-        Object.keys(newNegociaciones).forEach(estado => {
-          newNegociaciones[estado] = newNegociaciones[estado].map(item => {
-            if (item.id === id) {
-              return { ...item, ...data };
-            }
-            return item;
-          });
-        });
-        return newNegociaciones;
-      });
     } catch (error) {
-      console.error('Error:', error);
-      // Aquí podrías mostrar un mensaje de error al usuario
+      console.error('Error fetching clientes:', error);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const fetchVendedores = async () => {
     try {
-      const response = await fetch(`http://localhost:5002/api/negociaciones/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al eliminar la negociación');
+      const response = await fetch('http://localhost:5002/api/vendedores');
+      if (response.ok) {
+        const data = await response.json();
+        setVendedores(data);
       }
-
-      // Actualizar el estado local eliminando la negociación
-      setNegociaciones(prevNegociaciones => {
-        const newNegociaciones = { ...prevNegociaciones };
-        Object.keys(newNegociaciones).forEach(estado => {
-          newNegociaciones[estado] = newNegociaciones[estado].filter(item => item.id !== id);
-        });
-        return newNegociaciones;
-      });
     } catch (error) {
-      console.error('Error:', error);
-      // Aquí podrías mostrar un mensaje de error al usuario
+      console.error('Error fetching vendedores:', error);
     }
   };
 
-  const onDragEnd = (result: any) => {
-    const { source, destination } = result;
+  const fetchProductos = async () => {
+    try {
+      const response = await fetch('http://localhost:5002/api/productos');
+      if (response.ok) {
+        const data = await response.json();
+        setProductos(data);
+      }
+    } catch (error) {
+      console.error('Error fetching productos:', error);
+    }
+  };
+
+  const handleDragEnd = async (result: any) => {
+    const { source, destination, draggableId } = result;
+
     if (!destination) return;
 
     if (source.droppableId === destination.droppableId) {
+      // Reordenar dentro de la misma columna
       const items = Array.from(negociaciones[source.droppableId]);
       const [reorderedItem] = items.splice(source.index, 1);
       items.splice(destination.index, 0, reorderedItem);
@@ -141,115 +148,332 @@ export default function Negociaciones() {
         [source.droppableId]: items,
       });
     } else {
+      // Mover entre columnas
       const sourceItems = Array.from(negociaciones[source.droppableId]);
       const destItems = Array.from(negociaciones[destination.droppableId]);
-      const [removedItem] = sourceItems.splice(source.index, 1);
-      destItems.splice(destination.index, 0, removedItem);
+      const [movedItem] = sourceItems.splice(source.index, 1);
+      destItems.splice(destination.index, 0, movedItem);
 
-      setNegociaciones({
-        ...negociaciones,
-        [source.droppableId]: sourceItems,
-        [destination.droppableId]: destItems,
-      });
+      // Determinar el nuevo estado basado en la columna de destino
+      let nuevoEstado = 2; // Por defecto "en proceso"
+      if (destination.droppableId === 'cancelada') nuevoEstado = 1;
+      if (destination.droppableId === 'terminada') nuevoEstado = 3;
+
+      // Actualizar en la base de datos
+      try {
+        const response = await fetch(`http://localhost:5002/api/negociaciones/${movedItem.IDNegociacion}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...movedItem,
+            Estado: nuevoEstado,
+            FechaFin: nuevoEstado === 3 ? new Date().toISOString() : null
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Error al actualizar el estado de la negociación');
+        }
+
+        setNegociaciones({
+          ...negociaciones,
+          [source.droppableId]: sourceItems,
+          [destination.droppableId]: destItems,
+        });
+      } catch (error) {
+        console.error('Error updating negociacion:', error);
+        alert('Error al actualizar el estado de la negociación');
+      }
     }
   };
 
-  return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
-      />
-      <AdminMode />
-      <div className="flex-1">
-        <header className="bg-white dark:bg-gray-800 shadow-sm">
-          <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Negociaciones</h1>
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setIsModalOpen(true)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Nueva negociación
-                </button>
-                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-                  </svg>
-                  Filtrar
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
+  const handleCreateNegociacion = () => {
+    setIsModalOpen(true);
+  };
 
-        <main className="py-6">
-          <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-            <DragDropContext onDragEnd={onDragEnd}>
-              <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries({
-                    'en-proceso': 'En Proceso',
-                    'cancelada': 'Cancelada',
-                    'terminada': 'Terminada'
-                  }).map(([key, title]) => (
-                    <div key={key} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                      <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {title}
-                        </h3>
-                        <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full dark:text-gray-400 dark:bg-gray-600">
-                          {negociaciones[key].length}
-                        </span>
-                      </div>
-                      <Droppable droppableId={key}>
-                        {(provided) => (
-                          <div
-                            {...provided.droppableProps}
-                            ref={provided.innerRef}
-                            className="space-y-2 min-h-[calc(100vh-300px)]"
-                          >
-                            {negociaciones[key].map((item, index) => (
-                              <Draggable 
-                                key={item.id} 
-                                draggableId={item.id} 
-                                index={index}
-                              >
-                                {(provided) => (
-                                  <NegociacionCard
-                                    id={item.id}
-                                    cliente={item.cliente}
-                                    monto={item.monto}
-                                    provided={provided}
-                                    onEdit={handleEdit}
-                                    onDelete={handleDelete}
-                                  />
-                                )}
-                              </Draggable>
-                            ))}
-                            {provided.placeholder}
-                          </div>
-                        )}
-                      </Droppable>
-                    </div>
-                  ))}
+  const handleSubmitNegociacion = async (data: {
+    cliente: string;
+    vendedor: string;
+    productos: ProductoNegociacion[];
+    total: number;
+    comision: number;
+  }) => {
+    try {
+      // Encontrar los IDs correspondientes
+      const clienteSeleccionado = clientes.find(c => c.Nombre === data.cliente);
+      const vendedorSeleccionado = vendedores.find(v => v.Nombre === data.vendedor);
+
+      if (!clienteSeleccionado || !vendedorSeleccionado) {
+        alert('Error al seleccionar cliente o vendedor');
+        return;
+      }
+
+      // Crear la negociación
+      const negociacionResponse = await fetch('http://localhost:5002/api/negociaciones', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          IdCliente: clienteSeleccionado.Id,
+          IdVendedor: vendedorSeleccionado.Id,
+          Total: data.total,
+          Comision: data.comision,
+          Estado: 2, // En proceso
+          FechaInicio: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
+          FechaFin: new Date().toISOString().split('T')[0] // La base de datos requiere una fecha inicial
+        }),
+      });
+
+      if (!negociacionResponse.ok) {
+        const errorData = await negociacionResponse.json();
+        throw new Error(errorData.message || 'Error al crear la negociación');
+      }
+
+      const negociacionData = await negociacionResponse.json();
+      
+      if (!negociacionData.IDNegociacion) {
+        throw new Error('No se recibió el ID de la negociación');
+      }
+
+      const idNegociacion = negociacionData.IDNegociacion;
+
+      // Agregar los productos a la negociación
+      for (const producto of data.productos) {
+        const productoSeleccionado = productos.find(p => p.IDProducto === producto.IDProducto);
+        if (!productoSeleccionado) {
+          throw new Error(`Producto no encontrado: ${producto.IDProducto}`);
+        }
+
+        const productoResponse = await fetch(`http://localhost:5002/api/negociacion-productos`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            IDNegociacion: idNegociacion,
+            IDProducto: producto.IDProducto,
+            Cantidad: producto.Cantidad,
+            Precio: producto.PrecioUnitario,
+            Descripcion: productoSeleccionado.Descripcion
+          }),
+        });
+
+        if (!productoResponse.ok) {
+          const errorData = await productoResponse.json();
+          throw new Error(errorData.message || 'Error al agregar productos a la negociación');
+        }
+      }
+
+      setIsModalOpen(false);
+      fetchNegociaciones();
+      alert('Negociación creada exitosamente');
+    } catch (error) {
+      console.error('Error creating negociacion:', error);
+      alert(error instanceof Error ? error.message : 'Error al crear la negociación');
+    }
+  };
+
+  const handleDeleteNegociacion = async (id: number) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar esta negociación?')) {
+      try {
+        const response = await fetch(`http://localhost:5002/api/negociaciones/${id}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          fetchNegociaciones();
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Error al eliminar la negociación');
+        }
+      } catch (error) {
+        console.error('Error deleting negociacion:', error);
+        alert('Error al eliminar la negociación');
+      }
+    }
+  };
+
+  if (!isMounted) {
+    return null; // Evita el renderizado inicial en el cliente
+  }
+
+  return (
+    <AdminProtected>
+      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
+        />
+        <div className="flex-1">
+          <header className="bg-white dark:bg-gray-800 shadow-sm">
+            <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  Negociaciones
+                </h1>
+                <div className="flex items-center space-x-4">
+                  <AdminMode />
+                  <button
+                    onClick={handleCreateNegociacion}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  >
+                    Nueva Negociación
+                  </button>
                 </div>
               </div>
-            </DragDropContext>
-          </div>
-        </main>
+            </div>
+          </header>
+
+          <main className="py-6">
+            <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {/* Columna: En Proceso */}
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+                    <div className="p-4 border-b dark:border-gray-700">
+                      <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                        En Proceso
+                      </h2>
+                    </div>
+                    <Droppable droppableId="en-proceso">
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          className="p-4 space-y-4"
+                        >
+                          {negociaciones['en-proceso'].map((negociacion, index) => (
+                            <Draggable
+                              key={negociacion.IDNegociacion}
+                              draggableId={negociacion.IDNegociacion.toString()}
+                              index={index}
+                            >
+                              {(provided) => (
+                                <NegociacionCard
+                                  id={negociacion.IDNegociacion.toString()}
+                                  cliente={negociacion.ClienteNombre}
+                                  vendedor={negociacion.VendedorNombre}
+                                  productos={negociacion.Productos}
+                                  total={negociacion.Total}
+                                  comision={negociacion.Comision}
+                                  provided={provided}
+                                  onEdit={(id, data) => {
+                                    // Implementar edición si es necesario
+                                  }}
+                                  onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
+                                />
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </div>
+
+                  {/* Columna: Cancelada */}
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+                    <div className="p-4 border-b dark:border-gray-700">
+                      <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                        Cancelada
+                      </h2>
+                    </div>
+                    <Droppable droppableId="cancelada">
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          className="p-4 space-y-4"
+                        >
+                          {negociaciones['cancelada'].map((negociacion, index) => (
+                            <Draggable
+                              key={negociacion.IDNegociacion}
+                              draggableId={negociacion.IDNegociacion.toString()}
+                              index={index}
+                            >
+                              {(provided) => (
+                                <NegociacionCard
+                                  id={negociacion.IDNegociacion.toString()}
+                                  cliente={negociacion.ClienteNombre}
+                                  vendedor={negociacion.VendedorNombre}
+                                  productos={negociacion.Productos}
+                                  total={negociacion.Total}
+                                  comision={negociacion.Comision}
+                                  provided={provided}
+                                  onEdit={(id, data) => {
+                                    // Implementar edición si es necesario
+                                  }}
+                                  onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
+                                />
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </div>
+
+                  {/* Columna: Terminada */}
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+                    <div className="p-4 border-b dark:border-gray-700">
+                      <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                        Terminada
+                      </h2>
+                    </div>
+                    <Droppable droppableId="terminada">
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          className="p-4 space-y-4"
+                        >
+                          {negociaciones['terminada'].map((negociacion, index) => (
+                            <Draggable
+                              key={negociacion.IDNegociacion}
+                              draggableId={negociacion.IDNegociacion.toString()}
+                              index={index}
+                            >
+                              {(provided) => (
+                                <NegociacionCard
+                                  id={negociacion.IDNegociacion.toString()}
+                                  cliente={negociacion.ClienteNombre}
+                                  vendedor={negociacion.VendedorNombre}
+                                  productos={negociacion.Productos}
+                                  total={negociacion.Total}
+                                  comision={negociacion.Comision}
+                                  provided={provided}
+                                  onEdit={(id, data) => {
+                                    // Implementar edición si es necesario
+                                  }}
+                                  onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
+                                />
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </div>
+                </div>
+              </DragDropContext>
+            </div>
+          </main>
+        </div>
       </div>
 
-      {/* Modal for adding new negotiation */}
+      {/* Modal para crear nueva negociación */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
             <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Nueva negociación</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Nueva Negociación
+              </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -259,69 +483,20 @@ export default function Negociaciones() {
                 </svg>
               </button>
             </div>
-            
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Cliente
-                </label>
-                <input
-                  type="text"
-                  value={formData.cliente}
-                  onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                  required
-                />
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Monto
-                </label>
-                <input
-                  type="text"
-                  value={formData.monto}
-                  onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                  placeholder="$0.00"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Estado
-                </label>
-                <select
-                  value={formData.estado}
-                  onChange={(e) => setFormData({ ...formData, estado: e.target.value as NegociacionFormData['estado'] })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                >
-                  <option value="en-proceso">En Proceso</option>
-                  <option value="cancelada">Cancelada</option>
-                  <option value="terminada">Terminada</option>
-                </select>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                >
-                  Guardar
-                </button>
-              </div>
-            </form>
+            <NegociacionCard
+              id="new"
+              cliente=""
+              vendedor=""
+              productos={[]}
+              total={0}
+              comision={0}
+              onEdit={(id, data) => handleSubmitNegociacion(data)}
+              onDelete={() => setIsModalOpen(false)}
+            />
           </div>
         </div>
       )}
-    </div>
+    </AdminProtected>
   );
 }

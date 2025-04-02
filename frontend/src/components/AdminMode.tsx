@@ -1,17 +1,20 @@
 'use client';
 
 import { useAdmin } from '@/context/AdminContext';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { FiLock, FiUnlock } from 'react-icons/fi';
 
 export default function AdminMode() {
   const { isAdmin } = useAdmin();
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    if (isAdmin) {
-      console.log('Admin mode activated');
-    }
-  }, [isAdmin]);
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <div className="fixed top-2 right-2 transition-all duration-300 ease-in-out flex items-center space-x-2">
