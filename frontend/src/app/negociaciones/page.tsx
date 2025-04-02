@@ -315,11 +315,9 @@ export default function NegociacionesPage() {
                   Negociaciones
                 </h1>
                 <div className="flex items-center space-x-4">
-                  <AdminMode />
                   <button
                     onClick={handleCreateNegociacion}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                  >
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
                     Nueva Negociación
                   </button>
                 </div>
