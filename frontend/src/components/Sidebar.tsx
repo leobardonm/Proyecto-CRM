@@ -2,6 +2,8 @@
 
 import { useAdmin } from '@/context/AdminContext';
 import { FiHome, FiUser, FiUserCheck, FiDollarSign, FiBook, FiMenu } from 'react-icons/fi';
+import { IoGameControllerOutline } from "react-icons/io5";
+
 
 interface SidebarProps {
   isOpen: boolean;
@@ -41,6 +43,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
       icon: FiBook,
       label: 'Productos',
       adminOnly: true // Changed from false to true
+    },
+    {
+      href: '/juego',
+      icon: IoGameControllerOutline,
+      label: 'Juegos',
+      adminOnly: false // Changed from false to true
     }
   ];
 
