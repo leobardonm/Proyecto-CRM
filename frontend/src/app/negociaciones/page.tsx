@@ -79,7 +79,7 @@ export default function NegociacionesPage() {
 
   const fetchNegociaciones = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/negociaciones');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`);
       if (response.ok) {
         const data: Negociacion[] = await response.json();
         
@@ -99,7 +99,7 @@ export default function NegociacionesPage() {
 
   const fetchClientes = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/clientes');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes`);
       if (response.ok) {
         const data = await response.json();
         setClientes(data);
@@ -111,7 +111,7 @@ export default function NegociacionesPage() {
 
   const fetchVendedores = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/vendedores');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendedores`);
       if (response.ok) {
         const data = await response.json();
         setVendedores(data);
@@ -123,7 +123,7 @@ export default function NegociacionesPage() {
 
   const fetchProductos = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/productos');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`);
       if (response.ok) {
         const data = await response.json();
         setProductos(data);
@@ -163,7 +163,7 @@ export default function NegociacionesPage() {
 
       // Actualizar en la base de datos
       try {
-        const response = await fetch(`http://localhost:5002/api/negociaciones/${movedItem.IDNegociacion}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${movedItem.IDNegociacion}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -217,7 +217,7 @@ export default function NegociacionesPage() {
       }
 
       // Crear la negociación
-      const negociacionResponse = await fetch('http://localhost:5002/api/negociaciones', {
+      const negociacionResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -253,7 +253,7 @@ export default function NegociacionesPage() {
           throw new Error(`Producto no encontrado: ${producto.IDProducto}`);
         }
 
-        const productoResponse = await fetch(`http://localhost:5002/api/negociacion-productos`, {
+        const productoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociacion-productos`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -289,7 +289,7 @@ export default function NegociacionesPage() {
     }
     if (window.confirm('¿Estás seguro de que deseas eliminar esta negociación?')) {
       try {
-        const response = await fetch(`http://localhost:5002/api/negociaciones/${id}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${id}`, {
           method: 'DELETE',
         });
 

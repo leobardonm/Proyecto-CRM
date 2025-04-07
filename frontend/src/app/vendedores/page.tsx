@@ -84,7 +84,7 @@ export default function VendedoresPage() {
 
   const fetchVendedores = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/vendedores');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendedores`);
       if (response.ok) {
         const data = await response.json();
         setVendedores(data);
@@ -121,7 +121,7 @@ export default function VendedoresPage() {
   const handleDeleteVendedor = async (id: number) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este vendedor?')) {
       try {
-        const response = await fetch(`http://localhost:5002/api/vendedores/${id}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendedores/${id}`, {
           method: 'DELETE',
         });
 
@@ -142,8 +142,8 @@ export default function VendedoresPage() {
     e.preventDefault();
     try {
       const url = isEditMode && selectedVendedor
-        ? `http://localhost:5002/api/vendedores/${selectedVendedor.Id}`
-        : 'http://localhost:5002/api/vendedores';
+        ? `${process.env.NEXT_PUBLIC_API_URL}/vendedores/${selectedVendedor.Id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/vendedores`;
       
       const method = isEditMode ? 'PUT' : 'POST';
 

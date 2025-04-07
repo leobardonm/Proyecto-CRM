@@ -5,6 +5,10 @@ services:
     buildCommand: npm install
     startCommand: npm start
     envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5002
       - key: USUARIO_BD
         sync: false
       - key: CONTRASENA_BD
@@ -13,5 +17,7 @@ services:
         sync: false
       - key: NOMBRE_BD
         sync: false
-      - key: PUERTO
-        value: 5002
+      - key: FRONTEND_URL
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true

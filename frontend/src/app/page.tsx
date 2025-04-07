@@ -105,7 +105,7 @@ export default function Home() {
   // Fetch the client count from the backend API
   const fetchClientCount = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/clientes');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes`);
       if (await isJSON(response)) {
         const data = await response.json();
         setClientCount(data.length);
@@ -119,7 +119,7 @@ export default function Home() {
 
   const fetchNegotiationCount = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/negociaciones');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`);
       if (await isJSON(response)) {
         const data = await response.json();
         setNegotiationCount(data.length);
@@ -134,7 +134,7 @@ export default function Home() {
   // Fetch sales data
   const fetchSalesData = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/negociaciones');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`);
       if (await isJSON(response)) {
         const data = await response.json();
         
@@ -180,7 +180,7 @@ export default function Home() {
   // Fetch vendedores count
   const fetchVendorCount = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/vendedores');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendedores`);
       if (await isJSON(response)) {
         const data = await response.json();
         setVendorCount(data.length);
@@ -195,7 +195,7 @@ export default function Home() {
   // Add new function to fetch product count
   const fetchProductCount = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/productos');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`);
       if (await isJSON(response)) {
         const data = await response.json();
         setProductCount(data.length);

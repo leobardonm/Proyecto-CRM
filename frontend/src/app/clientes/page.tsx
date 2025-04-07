@@ -83,7 +83,7 @@ export default function ClientesPage() {
 
   const fetchClientes = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/clientes');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes`);
       if (response.ok) {
         const data = await response.json();
         setClientes(data);
@@ -99,8 +99,8 @@ export default function ClientesPage() {
     e.preventDefault();
     try {
       const url = isEditMode 
-        ? `http://localhost:5002/api/clientes/${selectedCliente?.Id}`
-        : 'http://localhost:5002/api/clientes';
+        ? `${process.env.NEXT_PUBLIC_API_URL}/clientes/${selectedCliente?.Id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/clientes`;
       
       const method = isEditMode ? 'PUT' : 'POST';
 
@@ -139,7 +139,7 @@ export default function ClientesPage() {
   const handleDelete = async (id: number) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este cliente?')) {
       try {
-        const response = await fetch(`http://localhost:5002/api/clientes/${id}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes/${id}`, {
           method: 'DELETE',
         });
         

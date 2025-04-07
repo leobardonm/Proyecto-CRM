@@ -14,11 +14,20 @@ const negociacionProductosRoutes = require('./api/negociacion-productos.routes')
 
 dotenv.config();
 const app = express();
-// Asegúrate de que estás usando el puerto de Render correctamente
+
+// Configuración del puerto
 const PORT = process.env.PORT || 5002;
 
+// Configuración de CORS para producción
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL 
+    : 'http://localhost:3000',
+  optionsSuccessStatus: 200
+};
+
 // Middlewares
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -34,7 +43,22 @@ app.use('/api/empresas', empresasRoutes);
 app.use('/api/estados', estadosRoutes);
 app.use('/api/negociacion-productos', negociacionProductosRoutes);
 
+// Ruta de prueba
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// Manejador de errores
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    error: 'Something broke!',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+  });
+});
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
+  console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
 });
