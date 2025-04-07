@@ -19,11 +19,27 @@ const app = express();
 const PORT = process.env.PORT || 5002;
 
 // Configuración de CORS para producción
+const allowedOrigins = [
+  'https://crm-deploy-flax.vercel.app',
+  'http://localhost:3000'
+];
+
 const corsOptions = {
-  origin: '*', // Temporalmente permitimos todos los orígenes
+  origin: function (origin, callback) {
+    // Permitir solicitudes sin origen (como mobile apps o curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
   credentials: true,
+  maxAge: 600, // Cache preflight requests for 10 minutes
   optionsSuccessStatus: 200
 };
 
@@ -45,7 +61,7 @@ app.use('/api/estados', estadosRoutes);
 app.use('/api/negociacion-productos', negociacionProductosRoutes);
 
 // Ruta de prueba
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
