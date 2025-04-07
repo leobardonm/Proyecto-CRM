@@ -1,12 +1,16 @@
 {
-  "name": "backend",
+  "name": "crm-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Backend para el sistema CRM",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "test": "jest --detectOpenHandles",
+    "test:unit": "jest tests/unit --detectOpenHandles",
+    "test:integration": "jest tests/integration --detectOpenHandles",
+    "test:coverage": "jest --coverage --detectOpenHandles",
+    "test:watch": "jest --watch --detectOpenHandles"
   },
   "keywords": [],
   "author": "",
@@ -16,7 +20,12 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "mssql": "^11.0.1",
-    "nodemon": "^3.1.9"
+    "mongoose": "^7.6.3",
+    "mssql": "^11.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.3"
   }
 }

@@ -1,0 +1,79 @@
+# Dependencias
+node_modules/
+/.pnp
+.pnp.js
+
+# Archivos de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.test
+
+# Archivos de compilación
+/build
+/dist
+/out
+
+# Archivos de caché
+.npm
+.eslintcache
+.stylelintcache
+*.cache
+
+# Archivos de logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs
+*.log
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Archivos de cobertura
+/coverage
+
+# Archivos temporales
+*.tmp
+*.temp
+.temp/
+tmp/
+temp/
+
+# Archivos de SQL Server
+*.mdf
+*.ldf
+*.bak
+
+# Archivos de configuración local
+config/local.js
+config/local.json
+
+# Archivos de caché de Next.js
+.next/
+out/
+
+# Archivos de caché de React
+.cache/
+.parcel-cache/
+
+# Archivos de caché de Jest
+.jest/
+jest.config.js.local
+
+# Archivos de caché de TypeScript
+*.tsbuildinfo
+
+# Archivos de caché de Babel
+.babel-cache/
+
+# Archivos de caché de Webpack
+.webpack/
+webpack.config.js.local
