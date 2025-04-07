@@ -4,18 +4,19 @@ const dotenv = require('dotenv');
 const { conectarDB } = require('./config/database');
 
 // Importar rutas
-const clientesRoutes = require('./clientes/clientes.routes');
-const negociacionesRoutes = require('./negociaciones/negociaciones.routes');
-const productosRoutes = require('./productos/productos.routes');
-const vendedoresRoutes = require('./vendedores/vendedores.routes');
-const empresasRoutes = require('./empresas/empresas.routes');
-const estadosRoutes = require('./estados/estados.routes');
-const negociacionProductosRoutes = require('./negociacion-productos/negociacion-productos.routes');
+const clientesRoutes = require('./api/clientes.routes');
+const negociacionesRoutes = require('./api/negociaciones.routes');
+const productosRoutes = require('./api/productos.routes');
+const vendedoresRoutes = require('./api/vendedores.routes');
+const empresasRoutes = require('./api/empresas.routes');
+const estadosRoutes = require('./api/estados.routes');
+const negociacionProductosRoutes = require('./api/negociacion-productos.routes');
 
 dotenv.config();
 const app = express();
 const PUERTO = process.env.PUERTO || 5002;
 
+// Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
