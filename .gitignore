@@ -1,0 +1,45 @@
+# Dependencies
+**/node_modules
+**/package-lock.json
+**/yarn.lock
+
+# Debug logs
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# Logs
+**/logs
+**/*.log
+
+# Environment files
+**/.env
+**/.env.*
+
+# Build & Output directories
+**/dist
+**/build
+**/out
+
+# IDE files
+**/.vscode
+**/.idea
+**/*.suo
+**/*.ntvs*
+**/*.njsproj
+**/*.sln
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Coverage & Test
+**/coverage
+
+# Temporary files
+**/*.tmp
+**/*.swp
+**/*.bak
+
+# Cache
+**/.cache
