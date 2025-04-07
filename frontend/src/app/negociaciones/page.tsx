@@ -340,6 +340,48 @@ export default function NegociacionesPage() {
           <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <DragDropContext onDragEnd={handleDragEnd}>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Columna: Cancelada */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+                  <div className="p-4 border-b dark:border-gray-700">
+                    <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                      Cancelada
+                    </h2>
+                  </div>
+                  <Droppable droppableId="cancelada" isDropDisabled={!isAdmin}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className="p-4 space-y-4"
+                      >
+                        {negociaciones['cancelada'].map((negociacion, index) => (
+                          <Draggable
+                            key={negociacion.IDNegociacion}
+                            draggableId={negociacion.IDNegociacion.toString()}
+                            index={index}
+                          >
+                            {(provided) => (
+                              <NegociacionCard
+                                id={negociacion.IDNegociacion.toString()}
+                                cliente={negociacion.ClienteNombre}
+                                vendedor={negociacion.VendedorNombre}
+                                productos={negociacion.Productos}
+                                total={negociacion.Total}
+                                comision={negociacion.Comision}
+                                provided={provided}
+                                onEdit={(id, data) => {
+                                  // Implementar edición si es necesario
+                                }}
+                                onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
+                              />
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </div>
                 {/* Columna: En Proceso */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
                   <div className="p-4 border-b dark:border-gray-700">
@@ -383,48 +425,6 @@ export default function NegociacionesPage() {
                   </Droppable>
                 </div>
 
-                {/* Columna: Cancelada */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                  <div className="p-4 border-b dark:border-gray-700">
-                    <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-                      Cancelada
-                    </h2>
-                  </div>
-                  <Droppable droppableId="cancelada" isDropDisabled={!isAdmin}>
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className="p-4 space-y-4"
-                      >
-                        {negociaciones['cancelada'].map((negociacion, index) => (
-                          <Draggable
-                            key={negociacion.IDNegociacion}
-                            draggableId={negociacion.IDNegociacion.toString()}
-                            index={index}
-                          >
-                            {(provided) => (
-                              <NegociacionCard
-                                id={negociacion.IDNegociacion.toString()}
-                                cliente={negociacion.ClienteNombre}
-                                vendedor={negociacion.VendedorNombre}
-                                productos={negociacion.Productos}
-                                total={negociacion.Total}
-                                comision={negociacion.Comision}
-                                provided={provided}
-                                onEdit={(id, data) => {
-                                  // Implementar edición si es necesario
-                                }}
-                                onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
-                              />
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
 
                 {/* Columna: Terminada */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow">

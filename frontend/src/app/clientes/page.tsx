@@ -35,11 +35,6 @@ export default function ClientesPage() {
 
   const columns = [
     {
-      header: 'ID',
-      accessor: 'Id',
-      key: 'id-cliente'
-    },
-    {
       header: 'Nombre',
       accessor: 'Nombre',
       key: 'nombre'
@@ -148,11 +143,18 @@ export default function ClientesPage() {
           method: 'DELETE',
         });
         
+        const data = await response.json();
+        
         if (response.ok) {
           fetchClientes();
+          alert(data.message);
+        } else {
+          alert(data.message || 'Error al eliminar el cliente');
+          console.error('Error al eliminar cliente:', data);
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error al eliminar cliente:', error);
+        alert('Error al eliminar el cliente. Por favor, intente nuevamente.');
       }
     }
   };
@@ -175,15 +177,10 @@ export default function ClientesPage() {
         <div className="flex-1">
           <header className="bg-white dark:bg-gray-800 shadow-sm">
             <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                Clientes
-              </h1>
-            </div>
-          </header>
-
-          <main className="h-full pb-16 overflow-y-auto">
-            <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
-              <div className="flex justify-end mb-4">
+              <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  Clientes
+                </h1>
                 <button
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                   onClick={() => setIsModalOpen(true)}
@@ -191,7 +188,11 @@ export default function ClientesPage() {
                   Agregar cliente
                 </button>
               </div>
+            </div>
+          </header>
 
+          <main className="h-full pb-16 overflow-y-auto">
+            <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
               <Table
                 columns={columns}
                 data={clientes}

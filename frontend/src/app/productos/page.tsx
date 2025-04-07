@@ -32,11 +32,6 @@ export default function ProductoPage() {
 
   const columns = [
     {
-      header: 'ID',
-      accessor: 'IDProducto',
-      key: 'id-producto'
-    },
-    {
       header: 'Descripción',
       accessor: 'Descripcion',
       key: 'descripcion'
