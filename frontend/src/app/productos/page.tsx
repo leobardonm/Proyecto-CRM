@@ -186,8 +186,7 @@ export default function ProductoPage() {
               <Table
                 columns={columns}
                 data={productos}
-                title="Lista de Productos"
-                rowKey="IDProducto"
+                className="w-full"
               />
             </div>
           </main>

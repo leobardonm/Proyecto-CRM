@@ -23,10 +23,14 @@ interface Negociacion {
   Estado: number;
   FechaInicio: string;
   FechaFin: string | null;
+  EstadoDescripcion: string;
+  Monto: number;
 }
 
 interface EstadosNegociacion {
-  [key: string]: Negociacion[];
+  'en-proceso': Negociacion[];
+  'cancelada': Negociacion[];
+  'terminada': Negociacion[];
 }
 
 interface Cliente {
@@ -83,7 +87,6 @@ export default function NegociacionesPage() {
       if (response.ok) {
         const data: Negociacion[] = await response.json();
         
-        // Organizar negociaciones por estado
         const organizadas: EstadosNegociacion = {
           'en-proceso': data.filter(n => n.Estado === 2),
           'cancelada': data.filter(n => n.Estado === 1),
@@ -133,61 +136,39 @@ export default function NegociacionesPage() {
     }
   };
 
-  const handleDragEnd = async (result: any) => {
+  const handleDragEnd = async (result: { source: { droppableId: string; index: number }; destination: { droppableId: string; index: number } | null }) => {
     if (!isAdmin) return;
-    const { source, destination, draggableId } = result;
+    const { source, destination } = result;
 
     if (!destination) return;
 
-    if (source.droppableId === destination.droppableId) {
-      // Reordenar dentro de la misma columna
-      const items = Array.from(negociaciones[source.droppableId]);
-      const [reorderedItem] = items.splice(source.index, 1);
-      items.splice(destination.index, 0, reorderedItem);
+    const sourceItems = Array.from(negociaciones[source.droppableId as keyof EstadosNegociacion]);
+    const [movedItem] = sourceItems.splice(source.index, 1);
 
-      setNegociaciones({
-        ...negociaciones,
-        [source.droppableId]: items,
+    const newEstado = destination.droppableId === 'en-proceso' ? 2 :
+                     destination.droppableId === 'cancelada' ? 1 : 3;
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${movedItem.IDNegociacion}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ Estado: newEstado }),
       });
-    } else {
-      // Mover entre columnas
-      const sourceItems = Array.from(negociaciones[source.droppableId]);
-      const destItems = Array.from(negociaciones[destination.droppableId]);
-      const [movedItem] = sourceItems.splice(source.index, 1);
-      destItems.splice(destination.index, 0, movedItem);
 
-      // Determinar el nuevo estado basado en la columna de destino
-      let nuevoEstado = 2; // Por defecto "en proceso"
-      if (destination.droppableId === 'cancelada') nuevoEstado = 1;
-      if (destination.droppableId === 'terminada') nuevoEstado = 3;
-
-      // Actualizar en la base de datos
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${movedItem.IDNegociacion}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...movedItem,
-            Estado: nuevoEstado,
-            FechaFin: nuevoEstado === 3 ? new Date().toISOString() : null
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Error al actualizar el estado de la negociación');
-        }
+      if (response.ok) {
+        const destItems = Array.from(negociaciones[destination.droppableId as keyof EstadosNegociacion]);
+        destItems.splice(destination.index, 0, { ...movedItem, Estado: newEstado });
 
         setNegociaciones({
           ...negociaciones,
           [source.droppableId]: sourceItems,
           [destination.droppableId]: destItems,
         });
-      } catch (error) {
-        console.error('Error updating negociacion:', error);
-        alert('Error al actualizar el estado de la negociación');
       }
+    } catch (error) {
+      console.error('Error updating negotiation:', error);
     }
   };
 

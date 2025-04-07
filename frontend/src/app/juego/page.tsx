@@ -1,33 +1,18 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { IoGameControllerOutline } from "react-icons/io5";
-import Sidebar from '@/components/Sidebar';
-import AdminMode from '@/components/AdminMode';
+
 import { useAdmin } from '@/context/AdminContext';
+import { IoGameControllerOutline } from 'react-icons/io5';
+import { useState } from 'react';
 
 export default function JuegoPage() {
   const { isAdmin } = useAdmin();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [gameLoaded, setGameLoaded] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
-      />
-      <div className="flex-1">
-        <header className="bg-white dark:bg-gray-800 shadow-sm">
-          <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Juego
-            </h1>
-          </div>
-        </header>
-
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-8">
         <main className="py-6">
           <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-            {/* Sección del Juego */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
               <div className="p-6">
                 <div className="text-center mb-4">
@@ -40,7 +25,6 @@ export default function JuegoPage() {
                   </p>
                 </div>
                 
-                {/* Contenedor del juego */}
                 <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                   {!gameLoaded && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700">

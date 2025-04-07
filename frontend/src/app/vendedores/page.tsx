@@ -204,8 +204,7 @@ export default function VendedoresPage() {
               <Table
                 columns={columns}
                 data={vendedores}
-                title="Lista de Vendedores"
-                rowKey="Id"
+                className="w-full"
               />
             </div>
           </main>

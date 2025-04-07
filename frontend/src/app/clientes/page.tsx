@@ -196,8 +196,7 @@ export default function ClientesPage() {
               <Table
                 columns={columns}
                 data={clientes}
-                title="Lista de Clientes"
-                rowKey="Id"
+                className="w-full"
               />
             </div>
           </main>

@@ -85,7 +85,7 @@ export default function Home() {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: function(this: any, tickValue: number | string) {
+          callback: function(tickValue: number | string) {
             return '$' + Number(tickValue).toLocaleString();
           }
         }
@@ -96,10 +96,7 @@ export default function Home() {
   // Utility function to check if a response is JSON
   const isJSON = async (response: Response) => {
     const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      return true;
-    }
-    return false;
+    return contentType && contentType.includes('application/json');
   };
 
   // Fetch the client count from the backend API
@@ -109,8 +106,6 @@ export default function Home() {
       if (await isJSON(response)) {
         const data = await response.json();
         setClientCount(data.length);
-      } else {
-        console.error('Invalid JSON response for client count');
       }
     } catch (error) {
       console.error('Error fetching client count:', error);
@@ -139,10 +134,10 @@ export default function Home() {
         const data = await response.json();
         
         // Filtrar solo las negociaciones completadas (Estado = 3)
-        const completedSales = data.filter((n: any) => n.Estado === 3);
+        const completedSales = data.filter((n: { Estado: number }) => n.Estado === 3);
         
         // Agrupar por mes
-        const monthlySales = completedSales.reduce((acc: { [key: string]: number }, sale: any) => {
+        const monthlySales = completedSales.reduce((acc: { [key: string]: number }, sale: { FechaFin: string; Total: number }) => {
           const date = new Date(sale.FechaFin);
           const month = date.toLocaleString('es-ES', { month: 'short' });
           const amount = sale.Total;
@@ -214,7 +209,7 @@ export default function Home() {
     fetchSalesData();
     fetchVendorCount();
     fetchProductCount();
-  }, []);
+  }, [fetchClientCount, fetchNegotiationCount, fetchSalesData, fetchVendorCount, fetchProductCount]);
 
   const onDragEnd = (result: any) => {
     const { source, destination } = result;
