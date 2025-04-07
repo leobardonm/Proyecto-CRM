@@ -58,7 +58,7 @@ interface DatabaseContextType {
 const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined);
 
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002/api';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
   // Count functions
   const getClientCount = async () => {

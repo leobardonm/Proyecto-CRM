@@ -71,9 +71,9 @@ export default function NegociacionCard({
     const fetchData = async () => {
       try {
         const [clientesRes, vendedoresRes, productosRes] = await Promise.all([
-          fetch('http://localhost:5002/api/clientes'),
-          fetch('http://localhost:5002/api/vendedores'),
-          fetch('http://localhost:5002/api/productos')
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendedores`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`)
         ]);
 
         const [clientesData, vendedoresData, productosData] = await Promise.all([

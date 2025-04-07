@@ -76,7 +76,7 @@ export default function ProductoPage() {
 
   const fetchProductos = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/productos');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`);
       if (response.ok) {
         const data = await response.json();
         setProductos(data);
@@ -92,8 +92,8 @@ export default function ProductoPage() {
     e.preventDefault();
     try {
       const url = isEditMode 
-        ? `http://localhost:5002/api/productos/${selectedProducto?.IDProducto}`
-        : 'http://localhost:5002/api/productos';
+        ? `${process.env.NEXT_PUBLIC_API_URL}/productos/${selectedProducto?.IDProducto}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/productos`;
       
       const method = isEditMode ? 'PUT' : 'POST';
 
@@ -135,7 +135,7 @@ export default function ProductoPage() {
   const handleDelete = async (id: number) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
       try {
-        const response = await fetch(`http://localhost:5002/api/productos/${id}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos/${id}`, {
           method: 'DELETE',
         });
         
