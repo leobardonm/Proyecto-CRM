@@ -19,27 +19,13 @@ const app = express();
 const PORT = process.env.PORT || 5002;
 
 // Configuración de CORS para producción
-const allowedOrigins = [
-  'https://crm-deploy-flax.vercel.app',
-  'http://localhost:3000'
-];
-
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Permitir solicitudes sin origen (como mobile apps o curl)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: '*', // Temporalmente permitimos todos los orígenes para debug
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
   credentials: true,
-  maxAge: 600, // Cache preflight requests for 10 minutes
+  maxAge: 600,
   optionsSuccessStatus: 200
 };
 
@@ -52,6 +38,11 @@ app.use(express.urlencoded({ extended: true }));
 conectarDB();
 
 // Rutas principales
+app.use('/api', (req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/negociaciones', negociacionesRoutes);
 app.use('/api/productos', productosRoutes);
@@ -62,7 +53,12 @@ app.use('/api/negociacion-productos', negociacionProductosRoutes);
 
 // Ruta de prueba
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  console.log('Health check requested');
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Manejador de errores
@@ -78,4 +74,5 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
   console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔒 CORS configurado para: ${corsOptions.origin}`);
 });
