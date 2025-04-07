@@ -1,32 +1,31 @@
-require('dotenv').config(); // Asegúrate de que esta línea esté al principio
-const sql = require('mssql');
+require('dotenv').config();
+const mysql = require('mysql2/promise');
 
-console.log('USUARIO_BD:', process.env.USUARIO_BD);
-console.log('CONTRASENA_BD:', process.env.CONTRASENA_BD);
-console.log('SERVIDOR_BD:', process.env.SERVIDOR_BD);
-console.log('NOMBRE_BD:', process.env.NOMBRE_BD);
-
-const configuracionBD = {
-  user: process.env.USUARIO_BD,
-  password: process.env.CONTRASENA_BD,
-  server: process.env.SERVIDOR_BD,
-  database: process.env.NOMBRE_BD,
-  port: 1433,
-  options: {
-    encrypt: true,
-    trustServerCertificate: true,
-    enableArithAbort: true,
-  },
-};
+// Actualizar los logs para usar las nuevas variables
+console.log('Database Config:', {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  database: process.env.DB_NAME
+});
 
 const conectarDB = async () => {
   try {
-    await sql.connect(configuracionBD);
-    console.log('✅ Conectado a la base de datos SQL Server');
+    const connection = await mysql.createConnection({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      ssl: {
+        rejectUnauthorized: false // Necesario para conexiones SSL en Render
+      }
+    });
+
+    console.log('🔌 Conexión exitosa a la base de datos');
+    return connection;
   } catch (error) {
-    console.error('❌ Error al conectar a la base de datos:', error.message);
-    process.exit(1); // Finaliza la aplicación si no se puede conectar
+    console.error('Error al conectar a la base de datos:', error);
+    process.exit(1);
   }
 };
 
-module.exports = { sql, conectarDB };
+module.exports = { conectarDB };

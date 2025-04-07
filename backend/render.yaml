@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: crm-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: USUARIO_BD
+        sync: false
+      - key: CONTRASENA_BD
+        sync: false
+      - key: SERVIDOR_BD
+        sync: false
+      - key: NOMBRE_BD
+        sync: false
+      - key: PUERTO
+        value: 5002

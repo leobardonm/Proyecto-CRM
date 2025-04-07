@@ -14,7 +14,8 @@ const negociacionProductosRoutes = require('./api/negociacion-productos.routes')
 
 dotenv.config();
 const app = express();
-const PUERTO = process.env.PUERTO || 5002;
+// Asegúrate de que estás usando el puerto de Render correctamente
+const PORT = process.env.PORT || 5002;
 
 // Middlewares
 app.use(cors());
@@ -34,6 +35,6 @@ app.use('/api/estados', estadosRoutes);
 app.use('/api/negociacion-productos', negociacionProductosRoutes);
 
 // Iniciar servidor
-app.listen(PUERTO, () => {
-  console.log(`🚀 Servidor ejecutándose en http://localhost:${PUERTO}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
 });
