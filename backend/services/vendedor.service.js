@@ -1,12 +1,21 @@
 const { sql } = require('../core/database');
 
 const obtenerTodosLosVendedores = async () => {
-    const result = await sql.query`SELECT * FROM Vendedor`;
+    const result = await sql.query`
+        SELECT v.*, e.Nombre as EmpresaNombre 
+        FROM Vendedor v
+        LEFT JOIN Empresa e ON v.IdEmpresa = e.Id
+    `;
     return result.recordset;
 };
 
 const obtenerVendedorPorId = async (id) => {
-    const result = await sql.query`SELECT * FROM Vendedor WHERE Id = ${id}`;
+    const result = await sql.query`
+        SELECT v.*, e.Nombre as EmpresaNombre 
+        FROM Vendedor v
+        LEFT JOIN Empresa e ON v.IdEmpresa = e.Id
+        WHERE v.Id = ${id}
+    `;
     return result.recordset[0];
 };
 
@@ -29,7 +38,10 @@ const actualizarVendedor = async (id, vendedor) => {
             Email = ${Email},
             IdEmpresa = ${IdEmpresa}
         WHERE Id = ${id};
-        SELECT * FROM Vendedor WHERE Id = ${id};
+        SELECT v.*, e.Nombre as EmpresaNombre 
+        FROM Vendedor v
+        LEFT JOIN Empresa e ON v.IdEmpresa = e.Id
+        WHERE v.Id = ${id};
     `;
     return result.recordset[0];
 };
