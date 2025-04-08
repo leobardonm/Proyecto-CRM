@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import Table from '@/components/Table';
 import AdminProtected from '@/components/AdminProtected';
 import AdminMode from '@/components/AdminMode';
+import { validateEmail } from '@/utils/validation';
 
 interface Vendedor {
   Id: number;
@@ -33,6 +34,7 @@ export default function VendedoresPage() {
     Telefono: '',
     IdEmpresa: 1
   });
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const columns = [
     {
@@ -140,6 +142,15 @@ export default function VendedoresPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email
+    const emailValidationError = validateEmail(formData.Email);
+    if (emailValidationError) {
+      setEmailError(emailValidationError);
+      return;
+    }
+    setEmailError(null);
+
     try {
       const url = isEditMode && selectedVendedor
         ? `${process.env.NEXT_PUBLIC_API_URL}/vendedores/${selectedVendedor.Id}`
@@ -172,6 +183,12 @@ export default function VendedoresPage() {
       console.error('Error saving vendedor:', error);
       alert('Error al guardar el vendedor');
     }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value;
+    setFormData({ ...formData, Email: newEmail });
+    setEmailError(validateEmail(newEmail));
   };
 
   return (
@@ -252,10 +269,15 @@ export default function VendedoresPage() {
                 <input
                   type="email"
                   value={formData.Email}
-                  onChange={(e) => setFormData({ ...formData, Email: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                  onChange={handleEmailChange}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
+                    emailError ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   required
                 />
+                {emailError && (
+                  <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                )}
               </div>
 
               <div>
