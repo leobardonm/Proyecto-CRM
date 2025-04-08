@@ -3,7 +3,7 @@ const { sql } = require('../core/database');
 const obtenerTodosLosProductos = async () => {
     const result = await sql.query`
         SELECT 
-            Id as IDProducto,
+            IDProducto,
             Descripcion,
             Precio,
             Stock
@@ -15,7 +15,7 @@ const obtenerTodosLosProductos = async () => {
 const obtenerProductoPorId = async (id) => {
     const result = await sql.query`
         SELECT 
-            Id as IDProducto,
+            IDProducto,
             Descripcion,
             Precio,
             Stock
@@ -30,7 +30,7 @@ const crearProducto = async (producto) => {
     const result = await sql.query`
         INSERT INTO Productos (Descripcion, Precio, Stock)
         OUTPUT 
-            INSERTED.Id as IDProducto,
+            INSERTED.IDProducto,
             INSERTED.Descripcion,
             INSERTED.Precio,
             INSERTED.Stock
@@ -48,7 +48,7 @@ const actualizarProducto = async (id, producto) => {
             Stock = ${Stock}
         WHERE IDProducto = ${id};
         SELECT 
-            IDProducto as Id,
+            IDProducto,
             Descripcion,
             Precio,
             Stock

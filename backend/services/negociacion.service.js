@@ -4,9 +4,9 @@ const obtenerTodasLasNegociaciones = async () => {
     const result = await sql.query`
         SELECT n.*, e.Descripcion as Estado, v.Nombre as Vendedor, c.Nombre as Cliente
         FROM Negociacion n
-        INNER JOIN Estado e ON n.EstadoID = e.ID
-        INNER JOIN Vendedor v ON n.VendedorID = v.ID
-        INNER JOIN Cliente c ON n.ClienteID = c.ID
+        INNER JOIN Estado e ON n.Estado = e.ID
+        INNER JOIN Vendedor v ON n.IdVendedor = v.ID
+        INNER JOIN Cliente c ON n.IdCliente = c.ID
     `;
     return result.recordset;
 };
@@ -15,9 +15,9 @@ const obtenerNegociacionPorId = async (id) => {
     const result = await sql.query`
         SELECT n.*, e.Descripcion as Estado, v.Nombre as Vendedor, c.Nombre as Cliente
         FROM Negociacion n
-        INNER JOIN Estado e ON n.EstadoID = e.ID
-        INNER JOIN Vendedor v ON n.VendedorID = v.ID
-        INNER JOIN Cliente c ON n.ClienteID = c.ID
+        INNER JOIN Estado e ON n.Estado = e.Id
+        INNER JOIN Vendedor v ON n.IdVendedor = v.Id
+        INNER JOIN Cliente c ON n.IdCliente = c.ID
         WHERE n.IDNegociacion = ${id}
     `;
     return result.recordset[0];
@@ -26,7 +26,7 @@ const obtenerNegociacionPorId = async (id) => {
 const crearNegociacion = async (negociacion) => {
     const { EstadoID, VendedorID, ClienteID, FechaInicio } = negociacion;
     const result = await sql.query`
-        INSERT INTO Negociacion (EstadoID, VendedorID, ClienteID, FechaInicio)
+        INSERT INTO Negociacion (Estado, IdVendedor, IdCliente, FechaInicio)
         OUTPUT INSERTED.*
         VALUES (${EstadoID}, ${VendedorID}, ${ClienteID}, ${FechaInicio});
     `;
@@ -37,9 +37,9 @@ const actualizarNegociacion = async (id, negociacion) => {
     const { EstadoID, VendedorID, ClienteID, FechaInicio } = negociacion;
     const result = await sql.query`
         UPDATE Negociacion 
-        SET EstadoID = ${EstadoID},
-            VendedorID = ${VendedorID},
-            ClienteID = ${ClienteID},
+        SET Estado = ${EstadoID},
+            IdVendedor = ${VendedorID},
+            IdCliente = ${ClienteID},
             FechaInicio = ${FechaInicio}
         WHERE IDNegociacion = ${id};
         SELECT * FROM Negociacion WHERE IDNegociacion = ${id};
