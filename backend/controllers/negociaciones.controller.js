@@ -54,10 +54,24 @@ const eliminarNegociacion = async (req, res) => {
     }
 };
 
+const obtenerVentasMesActual = async (req, res) => {
+    try {
+        const totalVentas = await negociacionService.obtenerVentasMesActual();
+        res.json({ totalVentas });
+    } catch (error) {
+        console.error('Error al obtener ventas del mes:', error);
+        res.status(500).json({ 
+            error: 'Error al obtener las ventas del mes',
+            details: error.message 
+        });
+    }
+};
+
 module.exports = {
     obtenerNegociaciones,
     obtenerNegociacion,
     crearNegociacion,
     actualizarNegociacion,
     eliminarNegociacion,
+    obtenerVentasMesActual
 };

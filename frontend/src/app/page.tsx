@@ -36,6 +36,13 @@ interface EstadosNegociacion {
   [key: string]: NegociacionItem[];
 }
 
+interface Negociacion {
+  Id: number;
+  Total: number;
+  Estado: number;
+  FechaFin: string;
+}
+
 export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [negociaciones, setNegociaciones] = useState<EstadosNegociacion>({
@@ -69,6 +76,8 @@ export default function Home() {
 
   // Add new state for product count
   const [productCount, setProductCount] = useState<number>(0);
+
+  const [ventasMes, setVentasMes] = useState<number>(0);
 
   const chartOptions = {
     responsive: true,
@@ -202,6 +211,19 @@ export default function Home() {
     }
   };
 
+  const fetchVentasMes = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/ventas-mes`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setVentasMes(data.totalVentas);
+    } catch (error) {
+      console.error('Error al obtener ventas del mes:', error);
+    }
+  };
+
   // Update useEffect to include product count
   useEffect(() => {
     fetchClientCount();
@@ -209,7 +231,8 @@ export default function Home() {
     fetchSalesData();
     fetchVendorCount();
     fetchProductCount();
-  }, [fetchClientCount, fetchNegotiationCount, fetchSalesData, fetchVendorCount, fetchProductCount]);
+    fetchVentasMes();
+  }, [fetchClientCount, fetchNegotiationCount, fetchSalesData, fetchVendorCount, fetchProductCount, fetchVentasMes]);
 
   const onDragEnd = (result: any) => {
     const { source, destination } = result;
@@ -304,7 +327,9 @@ export default function Home() {
                     </div>
                     <div className="ml-4">
                       <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Ventas del mes</h3>
-                      <span className="text-2xl font-bold text-gray-900 dark:text-white">$24.5k</span>
+                      <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                        ${ventasMes.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
                     </div>
                   </div>
                 </div>

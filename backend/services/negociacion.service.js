@@ -52,10 +52,23 @@ const eliminarNegociacion = async (id) => {
     return result.rowsAffected[0] > 0;
 };
 
+const obtenerVentasMesActual = async () => {
+    const result = await sql.query`
+        SELECT 
+            SUM(n.Total) as TotalVentas
+        FROM Negociacion n
+        WHERE n.EstadoID = 3
+        AND MONTH(n.FechaFin) = MONTH(GETDATE())
+        AND YEAR(n.FechaFin) = YEAR(GETDATE())
+    `;
+    return result.recordset[0]?.TotalVentas || 0;
+};
+
 module.exports = {
     obtenerTodasLasNegociaciones,
     obtenerNegociacionPorId,
     crearNegociacion,
     actualizarNegociacion,
     eliminarNegociacion,
+    obtenerVentasMesActual
 };

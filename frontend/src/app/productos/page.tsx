@@ -24,6 +24,8 @@ export default function ProductoPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ProductoFormData>({
     Descripcion: '',
     Precio: '',
@@ -75,22 +77,40 @@ export default function ProductoPage() {
   }, []);
 
   const fetchProductos = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`);
-      if (response.ok) {
-        const data = await response.json();
-        setProductos(data);
-      } else {
-        console.error('Error al obtener productos:', response.statusText);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      const data = await response.json();
+      setProductos(data);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error al obtener productos:', error);
+      setError('Error al cargar los productos. Por favor, intente nuevamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
     try {
+      // Validación de datos
+      if (!formData.Descripcion.trim()) {
+        throw new Error('La descripción es requerida');
+      }
+      if (!formData.Precio || isNaN(parseFloat(formData.Precio)) || parseFloat(formData.Precio) <= 0) {
+        throw new Error('El precio debe ser un número mayor a 0');
+      }
+      if (!formData.Stock || isNaN(parseInt(formData.Stock)) || parseInt(formData.Stock) < 0) {
+        throw new Error('El stock debe ser un número mayor o igual a 0');
+      }
+
       const url = isEditMode 
         ? `${process.env.NEXT_PUBLIC_API_URL}/productos/${selectedProducto?.IDProducto}`
         : `${process.env.NEXT_PUBLIC_API_URL}/productos`;
@@ -109,15 +129,20 @@ export default function ProductoPage() {
         }),
       });
       
-      if (response.ok) {
-        setIsModalOpen(false);
-        setIsEditMode(false);
-        setSelectedProducto(null);
-        setFormData({ Descripcion: '', Precio: '', Stock: '' });
-        fetchProductos();
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      setIsModalOpen(false);
+      setIsEditMode(false);
+      setSelectedProducto(null);
+      setFormData({ Descripcion: '', Precio: '', Stock: '' });
+      await fetchProductos();
     } catch (error) {
       console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Error al procesar la solicitud');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -133,18 +158,28 @@ export default function ProductoPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos/${id}`, {
-          method: 'DELETE',
-        });
-        
-        if (response.ok) {
-          fetchProductos();
-        }
-      } catch (error) {
-        console.error('Error:', error);
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      await fetchProductos();
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Error al eliminar el producto. Por favor, intente nuevamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -174,20 +209,33 @@ export default function ProductoPage() {
 
           <main className="h-full pb-16 overflow-y-auto">
             <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+              {error && (
+                <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                  {error}
+                </div>
+              )}
+
               <div className="flex justify-end mb-4">
                 <button
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                   onClick={() => setIsModalOpen(true)}
+                  disabled={isLoading}
                 >
-                  Agregar producto
+                  {isLoading ? 'Cargando...' : 'Agregar producto'}
                 </button>
               </div>
 
-              <Table
-                columns={columns}
-                data={productos}
-                className="w-full"
-              />
+              {isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                </div>
+              ) : (
+                <Table
+                  columns={columns}
+                  data={productos}
+                  className="w-full"
+                />
+              )}
             </div>
           </main>
         </div>
@@ -203,6 +251,7 @@ export default function ProductoPage() {
                 <button
                   onClick={handleModalClose}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  disabled={isLoading}
                 >
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -221,6 +270,7 @@ export default function ProductoPage() {
                     onChange={(e) => setFormData({ ...formData, Descripcion: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                     required
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -240,6 +290,7 @@ export default function ProductoPage() {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                     placeholder="0.00"
                     required
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -252,29 +303,32 @@ export default function ProductoPage() {
                     value={formData.Stock}
                     onChange={(e) => {
                       const value = e.target.value;
-                      if (value === '' || /^\d+$/.test(value)) {
+                      if (value === '' || /^\d*$/.test(value)) {
                         setFormData({ ...formData, Stock: value });
                       }
                     }}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                     placeholder="0"
                     required
+                    disabled={isLoading}
                   />
                 </div>
-                
-                <div className="flex justify-end space-x-3 mt-6">
+
+                <div className="flex justify-end space-x-3">
                   <button
                     type="button"
                     onClick={handleModalClose}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    disabled={isLoading}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    disabled={isLoading}
                   >
-                    {isEditMode ? 'Actualizar' : 'Guardar'}
+                    {isLoading ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Guardar')}
                   </button>
                 </div>
               </form>
