@@ -18,7 +18,7 @@ const obtenerNegociacionPorId = async (id) => {
         INNER JOIN Estado e ON n.EstadoID = e.ID
         INNER JOIN Vendedor v ON n.VendedorID = v.ID
         INNER JOIN Cliente c ON n.ClienteID = c.ID
-        WHERE n.ID = ${id}
+        WHERE n.IDNegociacion = ${id}
     `;
     return result.recordset[0];
 };
@@ -41,14 +41,14 @@ const actualizarNegociacion = async (id, negociacion) => {
             VendedorID = ${VendedorID},
             ClienteID = ${ClienteID},
             FechaInicio = ${FechaInicio}
-        WHERE ID = ${id};
-        SELECT * FROM Negociacion WHERE ID = ${id};
+        WHERE IDNegociacion = ${id};
+        SELECT * FROM Negociacion WHERE IDNegociacion = ${id};
     `;
     return result.recordset[0];
 };
 
 const eliminarNegociacion = async (id) => {
-    const result = await sql.query`DELETE FROM Negociacion WHERE ID = ${id}`;
+    const result = await sql.query`DELETE FROM Negociacion WHERE IDNegociacion = ${id}`;
     return result.rowsAffected[0] > 0;
 };
 
@@ -57,7 +57,7 @@ const obtenerVentasMesActual = async () => {
         SELECT 
             SUM(n.Total) as TotalVentas
         FROM Negociacion n
-        WHERE n.EstadoID = 3
+        WHERE n.Estado = 3
         AND MONTH(n.FechaFin) = MONTH(GETDATE())
         AND YEAR(n.FechaFin) = YEAR(GETDATE())
     `;

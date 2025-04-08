@@ -4,7 +4,7 @@ const obtenerTodosLosVendedores = async () => {
     const result = await sql.query`
         SELECT v.*, e.Nombre as EmpresaNombre 
         FROM Vendedor v
-        LEFT JOIN Empresa e ON v.IdEmpresa = e.Id
+        LEFT JOIN Empresa e ON v.IdEmpresa = e.IdEmpresa
     `;
     return result.recordset;
 };
@@ -13,7 +13,7 @@ const obtenerVendedorPorId = async (id) => {
     const result = await sql.query`
         SELECT v.*, e.Nombre as EmpresaNombre 
         FROM Vendedor v
-        LEFT JOIN Empresa e ON v.IdEmpresa = e.Id
+        LEFT JOIN Empresa e ON v.IdEmpresa = e.IdEmpresa
         WHERE v.Id = ${id}
     `;
     return result.recordset[0];
@@ -40,7 +40,7 @@ const actualizarVendedor = async (id, vendedor) => {
         WHERE Id = ${id};
         SELECT v.*, e.Nombre as EmpresaNombre 
         FROM Vendedor v
-        LEFT JOIN Empresa e ON v.IdEmpresa = e.Id
+        LEFT JOIN Empresa e ON v.IdEmpresa = e.IdEmpresa
         WHERE v.Id = ${id};
     `;
     return result.recordset[0];
