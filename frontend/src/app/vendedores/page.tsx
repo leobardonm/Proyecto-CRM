@@ -189,6 +189,13 @@ export default function VendedoresPage() {
                 <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
                   Vendedores
                 </h1>
+              </div>
+            </div>
+          </header>
+
+          <main className="h-full pb-16 overflow-y-auto">
+            <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <div className="flex justify-end mb-4">
                 <button
                   onClick={() => setIsModalOpen(true)}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
@@ -196,11 +203,6 @@ export default function VendedoresPage() {
                   Agregar vendedor
                 </button>
               </div>
-            </div>
-          </header>
-
-          <main className="py-6">
-            <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
               <Table
                 columns={columns}
                 data={vendedores}

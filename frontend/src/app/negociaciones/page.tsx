@@ -304,6 +304,13 @@ export default function NegociacionesPage() {
               <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
                 Negociaciones
               </h1>
+            </div>
+          </div>
+        </header>
+
+        <main className="h-full pb-16 overflow-y-auto">
+          <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <div className="flex justify-end mb-4">
               {isAdmin && (
                 <div className="flex items-center space-x-4">
                   <button
@@ -314,11 +321,6 @@ export default function NegociacionesPage() {
                 </div>
               )}
             </div>
-          </div>
-        </header>
-
-        <main className="py-6">
-          <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <DragDropContext onDragEnd={handleDragEnd}>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Columna: Cancelada */}
