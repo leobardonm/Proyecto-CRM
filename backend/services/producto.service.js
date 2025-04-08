@@ -7,7 +7,7 @@ const obtenerTodosLosProductos = async () => {
             Descripcion,
             Precio,
             Stock
-        FROM Producto
+        FROM Productos
     `;
     return result.recordset;
 };
@@ -19,8 +19,8 @@ const obtenerProductoPorId = async (id) => {
             Descripcion,
             Precio,
             Stock
-        FROM Producto 
-        WHERE Id = ${id}
+        FROM Productos 
+        WHERE IDProducto = ${id}
     `;
     return result.recordset[0];
 };
@@ -28,7 +28,7 @@ const obtenerProductoPorId = async (id) => {
 const crearProducto = async (producto) => {
     const { Descripcion, Precio, Stock } = producto;
     const result = await sql.query`
-        INSERT INTO Producto (Descripcion, Precio, Stock)
+        INSERT INTO Productos (Descripcion, Precio, Stock)
         OUTPUT 
             INSERTED.Id as IDProducto,
             INSERTED.Descripcion,
@@ -42,24 +42,24 @@ const crearProducto = async (producto) => {
 const actualizarProducto = async (id, producto) => {
     const { Descripcion, Precio, Stock } = producto;
     const result = await sql.query`
-        UPDATE Producto 
-        SET Descripcion = ${Descripcion},
+        UPDATE Productos
+            SET Descripcion = ${Descripcion},
             Precio = ${Precio},
             Stock = ${Stock}
-        WHERE Id = ${id};
+        WHERE IDProducto = ${id};
         SELECT 
-            Id as IDProducto,
+            IDProducto as Id,
             Descripcion,
             Precio,
             Stock
-        FROM Producto 
-        WHERE Id = ${id};
+        FROM Productos
+        WHERE IDProducto = ${id};
     `;
     return result.recordset[0];
 };
 
 const eliminarProducto = async (id) => {
-    const result = await sql.query`DELETE FROM Producto WHERE Id = ${id}`;
+    const result = await sql.query`DELETE FROM Productos WHERE IDProducto = ${id}`;
     return result.rowsAffected[0] > 0;
 };
 
