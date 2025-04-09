@@ -3,13 +3,19 @@
 import { useAdmin } from '@/context/AdminContext';
 import { IoGameControllerOutline } from 'react-icons/io5';
 import { useState } from 'react';
+import Sidebar from '@/components/Sidebar';
 
 export default function JuegoPage() {
   const { isAdmin } = useAdmin();
   const [gameLoaded, setGameLoaded] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
+        />
       <div className="container mx-auto px-4 py-8">
         <main className="py-6">
           <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
