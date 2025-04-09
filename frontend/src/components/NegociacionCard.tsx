@@ -134,7 +134,7 @@ export default function NegociacionCard({
       ref={provided?.innerRef}
       {...(provided?.draggableProps || {})}
       {...(provided?.dragHandleProps || {})}
-      className="bg-white dark:bg-gray-800 p-4 rounded shadow-sm rounded-border border-gray-200 dark:border-gray-600"
+      className="bg-white dark:bg-gray-800 p-4 rounded shadow-sm border border-gray-200 dark:border-gray-600"
     >
       <div className="flex justify-between items-start mb-2">
         {isEditing ? (
@@ -142,7 +142,7 @@ export default function NegociacionCard({
             <select
               value={cliente}
               onChange={(e) => setCliente(e.target.value)}
-              className="w-full text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+              className="w-full text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500 dark:text-white dark:border-gray-600"
             >
               <option value="">Seleccionar Cliente</option>
               {clientes.map((c) => (
@@ -152,7 +152,7 @@ export default function NegociacionCard({
             <select
               value={vendedor}
               onChange={(e) => setVendedor(e.target.value)}
-              className="w-full text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+              className="w-full text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500 dark:text-white dark:border-gray-600"
             >
               <option value="">Seleccionar Vendedor</option>
               {vendedores.map((v) => (
@@ -163,14 +163,15 @@ export default function NegociacionCard({
         ) : (
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
-              Cliente: {cliente}
+              Cliente: {cliente || 'No asignado'}
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Vendedor: {vendedor}
+              Vendedor: {vendedor || 'No asignado'}
             </p>
           </div>
         )}
-        <div className="flex gap-2">
+
+        <div className="flex space-x-2">
           {isEditing ? (
             <>
               <button 
@@ -213,10 +214,10 @@ export default function NegociacionCard({
         </div>
       </div>
 
-      <div className="mt-2 space-y-2">
+      <div className="mt-4">
         {isEditing ? (
           <div className="space-y-2">
-            {(productos || []).map((producto, index) => (
+            {productos.map((producto, index) => (
               <div key={index} className="flex items-center gap-2">
                 <select
                   value={producto.IDProducto}
@@ -231,9 +232,12 @@ export default function NegociacionCard({
                         Subtotal: nuevoProducto.Precio
                       };
                       setProductos(nuevosProductos);
+                      const nuevoTotal = calcularTotal(nuevosProductos);
+                      setTotal(nuevoTotal);
+                      setComision(calcularComision(nuevoTotal));
                     }
                   }}
-                  className="text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                  className="flex-1 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500 dark:text-white dark:border-gray-600"
                 >
                   <option value="">Seleccionar Producto</option>
                   {productosDisponibles.map((p) => (
@@ -247,16 +251,30 @@ export default function NegociacionCard({
                   min="1"
                   value={producto.Cantidad}
                   onChange={(e) => handleProductoChange(index, Number(e.target.value))}
-                  className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                  className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500 dark:text-white dark:border-gray-600"
                 />
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   ${producto.Subtotal}
                 </span>
+                <button
+                  onClick={() => {
+                    const nuevosProductos = productos.filter((_, i) => i !== index);
+                    setProductos(nuevosProductos);
+                    const nuevoTotal = calcularTotal(nuevosProductos);
+                    setTotal(nuevoTotal);
+                    setComision(calcularComision(nuevoTotal));
+                  }}
+                  className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             ))}
             <button
               onClick={() => {
-                setProductos([...(productos || []), {
+                setProductos([...productos, {
                   IDProducto: 0,
                   Cantidad: 1,
                   PrecioUnitario: 0,
@@ -273,12 +291,16 @@ export default function NegociacionCard({
             <p className="text-sm font-medium text-gray-900 dark:text-white">
               Productos:
             </p>
-            {(productos || []).map((producto, index) => (
-              <p key={index} className="text-xs text-gray-600 dark:text-gray-400">
-                {productosDisponibles.find(p => p.IDProducto === producto.IDProducto)?.Descripcion} 
-                - Cantidad: {producto.Cantidad} - ${producto.Subtotal}
-              </p>
-            ))}
+            {productos.map((producto, index) => {
+              const productoInfo = productosDisponibles.find(p => p.IDProducto === producto.IDProducto);
+              return (
+                <p key={index} className="text-xs text-gray-600 dark:text-gray-400">
+                  {productoInfo?.Descripcion || 'Producto no encontrado'} 
+                  - Cantidad: {producto.Cantidad} 
+                  - ${producto.Subtotal}
+                </p>
+              );
+            })}
             <p className="text-sm font-medium text-gray-900 dark:text-white mt-2">
               Total: ${total}
             </p>

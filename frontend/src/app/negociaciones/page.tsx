@@ -11,6 +11,7 @@ interface ProductoNegociacion {
   Cantidad: number;
   PrecioUnitario: number;
   Subtotal: number;
+  Descripcion: string;
 }
 
 interface Negociacion {
@@ -22,9 +23,34 @@ interface Negociacion {
   Comision: number;
   Estado: number;
   FechaInicio: string;
-  FechaFin: string | null;
+  FechaFin: string;
   EstadoDescripcion: string;
   Monto: number;
+  IdVendedor: number;
+  IdCliente: number;
+}
+
+interface NegociacionData {
+  IDNegociacion: number;
+  ClienteNombre: string;
+  VendedorNombre: string;
+  Productos: ProductoData[];
+  Total: number;
+  Comision: number;
+  Estado: number;
+  FechaInicio: string;
+  FechaFin: string;
+  EstadoDescripcion: string;
+  IdVendedor: number;
+  IdCliente: number;
+}
+
+interface ProductoData {
+  IDProducto: number;
+  Cantidad: number;
+  PrecioUnitario: number;
+  Subtotal: number;
+  Descripcion: string;
 }
 
 interface EstadosNegociacion {
@@ -56,6 +82,22 @@ interface DraggableProvided {
   innerRef: (element: HTMLElement | null) => void;
 }
 
+interface FormProductoNegociacion {
+  IDProducto: number;
+  Cantidad: number;
+  PrecioUnitario: number;
+  Subtotal: number;
+  Descripcion: string;
+}
+
+interface FormNegociacionData {
+  cliente: string;
+  vendedor: string;
+  productos: FormProductoNegociacion[];
+  total: number;
+  comision: number;
+}
+
 export default function NegociacionesPage() {
   const { isAdmin } = useAdmin();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -85,15 +127,44 @@ export default function NegociacionesPage() {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`);
       if (response.ok) {
-        const data: Negociacion[] = await response.json();
+        const data = await response.json();
+        console.log('Raw API response:', data);
         
+        // Transform the data to match our interface
+        const negociaciones: Negociacion[] = data.map((n: NegociacionData) => {
+          console.log('Processing negotiation:', n);
+          return {
+            IDNegociacion: n.IDNegociacion,
+            ClienteNombre: n.ClienteNombre || '',
+            VendedorNombre: n.VendedorNombre || '',
+            Productos: (n.Productos || []).map((p: ProductoData) => ({
+              IDProducto: p.IDProducto,
+              Cantidad: p.Cantidad,
+              PrecioUnitario: p.PrecioUnitario,
+              Subtotal: p.Subtotal,
+              Descripcion: p.Descripcion
+            })),
+            Total: n.Total || 0,
+            Comision: n.Comision || 0,
+            Estado: n.Estado,
+            FechaInicio: n.FechaInicio,
+            FechaFin: n.FechaFin,
+            EstadoDescripcion: n.EstadoDescripcion || '',
+            Monto: n.Total || 0,
+            IdVendedor: n.IdVendedor,
+            IdCliente: n.IdCliente
+          };
+        });
+
         const organizadas: EstadosNegociacion = {
-          'en-proceso': data.filter(n => n.Estado === 2),
-          'cancelada': data.filter(n => n.Estado === 1),
-          'terminada': data.filter(n => n.Estado === 3)
+          'en-proceso': negociaciones.filter(n => n.Estado === 2),
+          'cancelada': negociaciones.filter(n => n.Estado === 1),
+          'terminada': negociaciones.filter(n => n.Estado === 3)
         };
         
         setNegociaciones(organizadas);
+      } else {
+        console.error('Error response:', await response.text());
       }
     } catch (error) {
       console.error('Error fetching negociaciones:', error);
@@ -148,75 +219,106 @@ export default function NegociacionesPage() {
     const newEstado = destination.droppableId === 'en-proceso' ? 2 :
                      destination.droppableId === 'cancelada' ? 1 : 3;
 
+    console.log('Moving item:', movedItem);
+    console.log('New state:', newEstado);
+
     try {
+      const updateData = {
+        EstadoID: newEstado,
+        IdVendedor: movedItem.IdVendedor,
+        IdCliente: movedItem.IdCliente,
+        FechaInicio: movedItem.FechaInicio
+      };
+      console.log('Sending update data:', updateData);
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${movedItem.IDNegociacion}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ Estado: newEstado }),
+        body: JSON.stringify(updateData),
       });
 
       if (response.ok) {
+        // Update the estado property of the moved item
+        const updatedItem = { ...movedItem, Estado: newEstado };
+        
+        // Get the destination items and insert the moved item
         const destItems = Array.from(negociaciones[destination.droppableId as keyof EstadosNegociacion]);
-        destItems.splice(destination.index, 0, { ...movedItem, Estado: newEstado });
+        destItems.splice(destination.index, 0, updatedItem);
 
-        setNegociaciones({
-          ...negociaciones,
+        // Update the state with both source and destination changes
+        setNegociaciones(prev => ({
+          ...prev,
           [source.droppableId]: sourceItems,
           [destination.droppableId]: destItems,
-        });
+        }));
+
+        // Refresh the negotiations to ensure we have the latest data
+        fetchNegociaciones();
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to update negotiation state:', errorText);
+        console.error('Response status:', response.status);
+        // Revert the UI if the API call fails
+        sourceItems.splice(source.index, 0, movedItem);
+        setNegociaciones(prev => ({
+          ...prev,
+          [source.droppableId]: sourceItems,
+          [destination.droppableId]: negociaciones[destination.droppableId as keyof EstadosNegociacion],
+        }));
       }
     } catch (error) {
       console.error('Error updating negotiation:', error);
+      // Revert the UI if there's an error
+      sourceItems.splice(source.index, 0, movedItem);
+      setNegociaciones(prev => ({
+        ...prev,
+        [source.droppableId]: sourceItems,
+        [destination.droppableId]: negociaciones[destination.droppableId as keyof EstadosNegociacion],
+      }));
     }
   };
 
   const handleCreateNegociacion = () => {
-    if (!isAdmin) {
-      alert('Solo los administradores pueden crear negociaciones');
-      return;
-    }
     setIsModalOpen(true);
   };
 
-  const handleSubmitNegociacion = async (data: {
-    cliente: string;
-    vendedor: string;
-    productos: ProductoNegociacion[];
-    total: number;
-    comision: number;
-  }) => {
+  const handleSubmitNegociacion = async (data: FormNegociacionData) => {
     try {
-      // Encontrar los IDs correspondientes
+      if (!data.productos || data.productos.length === 0) {
+        throw new Error('Debe seleccionar al menos un producto');
+      }
+
       const clienteSeleccionado = clientes.find(c => c.Nombre === data.cliente);
       const vendedorSeleccionado = vendedores.find(v => v.Nombre === data.vendedor);
 
-      if (!clienteSeleccionado || !vendedorSeleccionado) {
-        alert('Error al seleccionar cliente o vendedor');
-        return;
+      if (!clienteSeleccionado) {
+        throw new Error(`Cliente no encontrado: ${data.cliente}`);
+      }
+      if (!vendedorSeleccionado) {
+        throw new Error(`Vendedor no encontrado: ${data.vendedor}`);
       }
 
-      // Crear la negociación
       const negociacionResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          IdCliente: clienteSeleccionado.Id,
+          EstadoID: 2, // En proceso
           IdVendedor: vendedorSeleccionado.Id,
+          IdCliente: clienteSeleccionado.Id,
+          FechaInicio: new Date().toISOString().split('T')[0],
+          FechaFin: new Date().toISOString().split('T')[0],
           Total: data.total,
-          Comision: data.comision,
-          Estado: 2, // En proceso
-          FechaInicio: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
-          FechaFin: new Date().toISOString().split('T')[0] // La base de datos requiere una fecha inicial
+          Comision: data.comision
         }),
       });
 
       if (!negociacionResponse.ok) {
         const errorData = await negociacionResponse.json();
-        throw new Error(errorData.message || 'Error al crear la negociación');
+        throw new Error(errorData.error || 'Error al crear la negociación');
       }
 
       const negociacionData = await negociacionResponse.json();
@@ -227,13 +329,7 @@ export default function NegociacionesPage() {
 
       const idNegociacion = negociacionData.IDNegociacion;
 
-      // Agregar los productos a la negociación
       for (const producto of data.productos) {
-        const productoSeleccionado = productos.find(p => p.IDProducto === producto.IDProducto);
-        if (!productoSeleccionado) {
-          throw new Error(`Producto no encontrado: ${producto.IDProducto}`);
-        }
-
         const productoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociacion-productos`, {
           method: 'POST',
           headers: {
@@ -244,13 +340,13 @@ export default function NegociacionesPage() {
             IDProducto: producto.IDProducto,
             Cantidad: producto.Cantidad,
             Precio: producto.PrecioUnitario,
-            Descripcion: productoSeleccionado.Descripcion
+            Descripcion: producto.Descripcion
           }),
         });
 
         if (!productoResponse.ok) {
           const errorData = await productoResponse.json();
-          throw new Error(errorData.message || 'Error al agregar productos a la negociación');
+          throw new Error(errorData.message || errorData.error || 'Error al agregar productos a la negociación');
         }
       }
 
@@ -348,12 +444,12 @@ export default function NegociacionesPage() {
                                 id={negociacion.IDNegociacion.toString()}
                                 cliente={negociacion.ClienteNombre}
                                 vendedor={negociacion.VendedorNombre}
-                                productos={negociacion.Productos}
+                                productos={negociacion.Productos || []}
                                 total={negociacion.Total}
                                 comision={negociacion.Comision}
                                 provided={provided}
                                 onEdit={(id, data) => {
-                                  // Implementar edición si es necesario
+                                  // Implement edit if needed
                                 }}
                                 onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
                               />
@@ -390,12 +486,12 @@ export default function NegociacionesPage() {
                                 id={negociacion.IDNegociacion.toString()}
                                 cliente={negociacion.ClienteNombre}
                                 vendedor={negociacion.VendedorNombre}
-                                productos={negociacion.Productos}
+                                productos={negociacion.Productos || []}
                                 total={negociacion.Total}
                                 comision={negociacion.Comision}
                                 provided={provided}
                                 onEdit={(id, data) => {
-                                  // Implementar edición si es necesario
+                                  // Implement edit if needed
                                 }}
                                 onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
                               />
@@ -434,12 +530,12 @@ export default function NegociacionesPage() {
                                 id={negociacion.IDNegociacion.toString()}
                                 cliente={negociacion.ClienteNombre}
                                 vendedor={negociacion.VendedorNombre}
-                                productos={negociacion.Productos}
+                                productos={negociacion.Productos || []}
                                 total={negociacion.Total}
                                 comision={negociacion.Comision}
                                 provided={provided}
                                 onEdit={(id, data) => {
-                                  // Implementar edición si es necesario
+                                  // Implement edit if needed
                                 }}
                                 onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
                               />
@@ -482,7 +578,19 @@ export default function NegociacionesPage() {
               productos={[]}
               total={0}
               comision={0}
-              onEdit={(id, data) => handleSubmitNegociacion(data)}
+              onEdit={(id, data) => {
+                const formData: FormNegociacionData = {
+                  ...data,
+                  productos: data.productos.map(p => ({
+                    IDProducto: p.IDProducto,
+                    Cantidad: p.Cantidad,
+                    PrecioUnitario: p.PrecioUnitario,
+                    Subtotal: p.Subtotal,
+                    Descripcion: ''
+                  }))
+                };
+                handleSubmitNegociacion(formData);
+              }}
               onDelete={() => setIsModalOpen(false)}
             />
           </div>

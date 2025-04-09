@@ -11,16 +11,16 @@ const obtenerProductosPorNegociacion = async (idNegociacion) => {
 };
 
 const agregarProducto = async (producto) => {
-    const { IdNegociacion, IdProducto, Cantidad, Precio, Descripcion } = producto;
+    const { IDNegociacion, IDProducto, Cantidad, Precio, Descripcion } = producto;
     const result = await sql.query`
         INSERT INTO NegociacionProductos (IDNegociacion, IDProducto, Cantidad, Precio, Descripcion)
         OUTPUT INSERTED.*
-        VALUES (${IdNegociacion}, ${IdProducto}, ${Cantidad}, ${Precio}, ${Descripcion});
+        VALUES (${IDNegociacion}, ${IDProducto}, ${Cantidad}, ${Precio}, ${Descripcion});
     `;
     return result.recordset[0];
 };
 
-const actualizarProducto = async (idNegociacion, idProducto, producto) => {
+const actualizarProducto = async (IDNegociacion, IDProducto, producto) => {
     const { Cantidad, Precio, Descripcion } = producto;
     const result = await sql.query`
         UPDATE NegociacionProductos 

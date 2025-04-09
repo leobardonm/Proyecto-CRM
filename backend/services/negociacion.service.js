@@ -2,44 +2,88 @@ const { sql } = require('../core/database');
 
 const obtenerTodasLasNegociaciones = async () => {
     const result = await sql.query`
-        SELECT n.*, e.Descripcion as Estado, v.Nombre as Vendedor, c.Nombre as Cliente
+        SELECT 
+            n.IDNegociacion,
+            c.Nombre as ClienteNombre,
+            v.Nombre as VendedorNombre,
+            n.Total,
+            n.Comision,
+            n.Estado,
+            n.FechaInicio,
+            n.FechaFin,
+            e.Descripcion as EstadoDescripcion,
+            n.Total as Monto,
+            n.IdCliente,
+            n.IdVendedor
         FROM Negociacion n
-        INNER JOIN Estado e ON n.Estado = e.ID
-        INNER JOIN Vendedor v ON n.IdVendedor = v.ID
-        INNER JOIN Cliente c ON n.IdCliente = c.ID
+        INNER JOIN Estado e ON n.Estado = e.Id
+        INNER JOIN Vendedor v ON n.IdVendedor = v.Id
+        INNER JOIN Cliente c ON n.IdCliente = c.Id
     `;
-    return result.recordset;
+
+    // Get productos for each negociacion
+    const negociaciones = result.recordset;
+    for (const negociacion of negociaciones) {
+        const productosResult = await sql.query`
+            SELECT 
+                np.IDProducto,
+                np.Cantidad,
+                np.Precio as PrecioUnitario,
+                (np.Cantidad * np.Precio) as Subtotal,
+                p.Descripcion
+            FROM NegociacionProductos np
+            INNER JOIN Productos p ON np.IDProducto = p.IDProducto
+            WHERE np.IDNegociacion = ${negociacion.IDNegociacion}
+        `;
+        negociacion.Productos = productosResult.recordset;
+    }
+
+    return negociaciones;
 };
 
 const obtenerNegociacionPorId = async (id) => {
     const result = await sql.query`
-        SELECT n.*, e.Descripcion as Estado, v.Nombre as Vendedor, c.Nombre as Cliente
-        FROM Negociacion n
-        INNER JOIN Estado e ON n.Estado = e.Id
-        INNER JOIN Vendedor v ON n.IdVendedor = v.Id
-        INNER JOIN Cliente c ON n.IdCliente = c.ID
+        SELECT n.*, e.Descripcion as Estado, v.Nombre as Vendedor, c.Nombre as Cliente,
+               (SELECT COUNT(np.IDProducto)
+                FROM [dbo].[NegociacionProductos] np
+                WHERE np.IDNegociacion = n.IDNegociacion) as ProductCount
+        FROM [dbo].[Negociacion] n
+        INNER JOIN [dbo].[Estado] e ON n.Estado = e.ID
+        INNER JOIN [dbo].[Vendedor] v ON n.IdVendedor = v.ID
+        INNER JOIN [dbo].[Cliente] c ON n.IdCliente = c.ID
         WHERE n.IDNegociacion = ${id}
     `;
     return result.recordset[0];
 };
 
 const crearNegociacion = async (negociacion) => {
-    const { EstadoID, VendedorID, ClienteID, FechaInicio } = negociacion;
-    const result = await sql.query`
-        INSERT INTO Negociacion (Estado, IdVendedor, IdCliente, FechaInicio)
-        OUTPUT INSERTED.*
-        VALUES (${EstadoID}, ${VendedorID}, ${ClienteID}, ${FechaInicio});
-    `;
-    return result.recordset[0];
+    const { EstadoID, IdVendedor, IdCliente, FechaInicio, Total, Comision } = negociacion;
+    
+    // Add validation
+    if (!IdVendedor || !IdCliente || !FechaInicio) {
+        throw new Error('Faltan campos requeridos: IdVendedor, IdCliente, y FechaInicio son obligatorios');
+    }
+
+    try {
+        const result = await sql.query`
+            INSERT INTO Negociacion (Estado, IdVendedor, IdCliente, FechaInicio, FechaFin, Total, Comision)
+            OUTPUT INSERTED.*
+            VALUES (${EstadoID}, ${IdVendedor}, ${IdCliente}, ${FechaInicio}, ${FechaInicio}, ${Total}, ${Comision});
+        `;
+        return result.recordset[0];
+    } catch (error) {
+        console.error('Error in crearNegociacion:', error);
+        throw new Error(`Error al crear la negociación: ${error.message}`);
+    }
 };
 
 const actualizarNegociacion = async (id, negociacion) => {
-    const { EstadoID, VendedorID, ClienteID, FechaInicio } = negociacion;
+    const { EstadoID, IdVendedor, IdCliente, FechaInicio } = negociacion;
     const result = await sql.query`
         UPDATE Negociacion 
         SET Estado = ${EstadoID},
-            IdVendedor = ${VendedorID},
-            IdCliente = ${ClienteID},
+            IdVendedor = ${IdVendedor},
+            IdCliente = ${IdCliente},
             FechaInicio = ${FechaInicio}
         WHERE IDNegociacion = ${id};
         SELECT * FROM Negociacion WHERE IDNegociacion = ${id};
