@@ -213,12 +213,31 @@ export default function Home() {
 
   const fetchVentasMes = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/ventas-mes`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`);
+      if (await isJSON(response)) {
+        const data = await response.json();
+        
+        // Filtrar solo las negociaciones completadas (Estado = 3)
+        const completedSales = data.filter((n: { Estado: number }) => n.Estado === 3);
+        
+        // Obtener el mes actual
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+        
+        // Filtrar las ventas del mes actual
+        const monthlySales = completedSales
+          .filter((sale: { FechaFin: string }) => {
+            const saleDate = new Date(sale.FechaFin);
+            return saleDate.getMonth() === currentMonth && 
+                   saleDate.getFullYear() === currentYear;
+          })
+          .reduce((total: number, sale: { Total: number }) => total + sale.Total, 0);
+        
+        setVentasMes(monthlySales);
+      } else {
+        console.error('Invalid JSON response for monthly sales');
       }
-      const data = await response.json();
-      setVentasMes(data.totalVentas);
     } catch (error) {
       console.error('Error al obtener ventas del mes:', error);
     }
