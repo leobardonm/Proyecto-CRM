@@ -3,7 +3,11 @@ const { sql } = require('../core/database');
 const obtenerTodosLosVendedores = async () => {
     const result = await sql.query`
         SELECT 
-            v.*, 
+            v.Id,
+            v.Nombre,
+            v.Telefono,
+            v.Email,
+            v.IdEmpresa,
             e.Nombre as EmpresaNombre,
             ISNULL((
                 SELECT SUM(n.Comision)
@@ -12,7 +16,7 @@ const obtenerTodosLosVendedores = async () => {
                 AND n.Estado = 3
             ), 0) as ComisionTotal
         FROM Vendedor v
-        LEFT JOIN Empresa e ON v.IdEmpresa = e.Id
+        LEFT JOIN Empresa e ON v.IdEmpresa = e.IDEmpresa
     `;
     return result.recordset;
 };
@@ -20,7 +24,11 @@ const obtenerTodosLosVendedores = async () => {
 const obtenerVendedorPorId = async (id) => {
     const result = await sql.query`
         SELECT 
-            v.*, 
+            v.Id,
+            v.Nombre,
+            v.Telefono,
+            v.Email,
+            v.IdEmpresa,
             e.Nombre as EmpresaNombre,
             ISNULL((
                 SELECT SUM(n.Comision)
@@ -29,7 +37,7 @@ const obtenerVendedorPorId = async (id) => {
                 AND n.Estado = 3
             ), 0) as ComisionTotal
         FROM Vendedor v
-        LEFT JOIN Empresa e ON v.IdEmpresa = e.Id
+        LEFT JOIN Empresa e ON v.IdEmpresa = e.IDEmpresa
         WHERE v.Id = ${id}
     `;
     return result.recordset[0];
@@ -54,7 +62,19 @@ const actualizarVendedor = async (id, vendedor) => {
             Email = ${Email},
             IdEmpresa = ${IdEmpresa}
         WHERE Id = ${id};
-        SELECT v.*, e.Nombre as EmpresaNombre 
+        SELECT 
+            v.Id,
+            v.Nombre,
+            v.Telefono,
+            v.Email,
+            v.IdEmpresa,
+            e.Nombre as EmpresaNombre,
+            ISNULL((
+                SELECT SUM(n.Comision)
+                FROM Negociacion n
+                WHERE n.IdVendedor = v.Id
+                AND n.Estado = 3
+            ), 0) as ComisionTotal
         FROM Vendedor v
         LEFT JOIN Empresa e ON v.IdEmpresa = e.IDEmpresa
         WHERE v.Id = ${id};
