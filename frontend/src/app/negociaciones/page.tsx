@@ -219,64 +219,47 @@ export default function NegociacionesPage() {
     const newEstado = destination.droppableId === 'en-proceso' ? 2 :
                      destination.droppableId === 'cancelada' ? 1 : 3;
 
-    console.log('Moving item:', movedItem);
-    console.log('New state:', newEstado);
-
     try {
-      const updateData = {
-        EstadoID: newEstado,
-        IdVendedor: movedItem.IdVendedor,
-        IdCliente: movedItem.IdCliente,
-        FechaInicio: movedItem.FechaInicio
-      };
-      console.log('Sending update data:', updateData);
-
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${movedItem.IDNegociacion}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify({
+          EstadoID: newEstado
+        }),
       });
 
       if (response.ok) {
-        // Update the estado property of the moved item
-        const updatedItem = { ...movedItem, Estado: newEstado };
-        
-        // Get the destination items and insert the moved item
+        // Actualizar el estado local solo después de confirmar que la actualización fue exitosa
         const destItems = Array.from(negociaciones[destination.droppableId as keyof EstadosNegociacion]);
-        destItems.splice(destination.index, 0, updatedItem);
+        destItems.splice(destination.index, 0, { ...movedItem, Estado: newEstado });
 
-        // Update the state with both source and destination changes
         setNegociaciones(prev => ({
           ...prev,
           [source.droppableId]: sourceItems,
           [destination.droppableId]: destItems,
         }));
-
-        // Refresh the negotiations to ensure we have the latest data
-        fetchNegociaciones();
       } else {
         const errorText = await response.text();
-        console.error('Failed to update negotiation state:', errorText);
-        console.error('Response status:', response.status);
-        // Revert the UI if the API call fails
+        console.error('Error al actualizar el estado de la negociación:', errorText);
+        // Revertir el cambio en la UI
         sourceItems.splice(source.index, 0, movedItem);
         setNegociaciones(prev => ({
           ...prev,
           [source.droppableId]: sourceItems,
-          [destination.droppableId]: negociaciones[destination.droppableId as keyof EstadosNegociacion],
         }));
+        alert('Error al actualizar el estado de la negociación');
       }
     } catch (error) {
-      console.error('Error updating negotiation:', error);
-      // Revert the UI if there's an error
+      console.error('Error al actualizar la negociación:', error);
+      // Revertir el cambio en la UI
       sourceItems.splice(source.index, 0, movedItem);
       setNegociaciones(prev => ({
         ...prev,
         [source.droppableId]: sourceItems,
-        [destination.droppableId]: negociaciones[destination.droppableId as keyof EstadosNegociacion],
       }));
+      alert('Error al actualizar la negociación');
     }
   };
 

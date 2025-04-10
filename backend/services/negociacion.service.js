@@ -78,13 +78,29 @@ const crearNegociacion = async (negociacion) => {
 };
 
 const actualizarNegociacion = async (id, negociacion) => {
-    const { EstadoID, IdVendedor, IdCliente, FechaInicio } = negociacion;
+    const { EstadoID } = negociacion;
+    
+    // Validar que el estado sea válido (1, 2 o 3)
+    if (![1, 2, 3].includes(EstadoID)) {
+        throw new Error('Estado inválido. Debe ser 1 (cancelada), 2 (en proceso) o 3 (terminada)');
+    }
+
+    // Si el estado es 3 (terminada), actualizar también la fecha de fin
+    if (EstadoID === 3) {
+        const result = await sql.query`
+            UPDATE Negociacion 
+            SET Estado = ${EstadoID},
+                FechaFin = GETDATE()
+            WHERE IDNegociacion = ${id};
+            SELECT * FROM Negociacion WHERE IDNegociacion = ${id};
+        `;
+        return result.recordset[0];
+    }
+
+    // Para otros estados, solo actualizar el estado
     const result = await sql.query`
         UPDATE Negociacion 
-        SET Estado = ${EstadoID},
-            IdVendedor = ${IdVendedor},
-            IdCliente = ${IdCliente},
-            FechaInicio = ${FechaInicio}
+        SET Estado = ${EstadoID}
         WHERE IDNegociacion = ${id};
         SELECT * FROM Negociacion WHERE IDNegociacion = ${id};
     `;
