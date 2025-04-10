@@ -13,6 +13,7 @@ interface Vendedor {
   Telefono: string;
   EmpresaNombre: string;
   IdEmpresa: number;
+  ComisionTotal: number;
 }
 
 interface VendedorFormData {
@@ -56,6 +57,12 @@ export default function VendedoresPage() {
       header: 'Empresa',
       accessor: 'EmpresaNombre',
       key: 'empresa'
+    },
+    {
+      header: 'Comisión Total',
+      accessor: 'ComisionTotal',
+      key: 'comision',
+      cell: (row: Vendedor) => `$${row.ComisionTotal.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     },
     {
       header: 'Acciones',

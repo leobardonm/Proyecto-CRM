@@ -2,18 +2,34 @@ const { sql } = require('../core/database');
 
 const obtenerTodosLosVendedores = async () => {
     const result = await sql.query`
-        SELECT v.*, e.Nombre as EmpresaNombre 
+        SELECT 
+            v.*, 
+            e.Nombre as EmpresaNombre,
+            ISNULL((
+                SELECT SUM(n.Comision)
+                FROM Negociacion n
+                WHERE n.IdVendedor = v.Id
+                AND n.Estado = 3
+            ), 0) as ComisionTotal
         FROM Vendedor v
-        LEFT JOIN Empresa e ON v.IdEmpresa = e.IDEmpresa
+        LEFT JOIN Empresa e ON v.IdEmpresa = e.Id
     `;
     return result.recordset;
 };
 
 const obtenerVendedorPorId = async (id) => {
     const result = await sql.query`
-        SELECT v.*, e.Nombre as EmpresaNombre 
+        SELECT 
+            v.*, 
+            e.Nombre as EmpresaNombre,
+            ISNULL((
+                SELECT SUM(n.Comision)
+                FROM Negociacion n
+                WHERE n.IdVendedor = v.Id
+                AND n.Estado = 3
+            ), 0) as ComisionTotal
         FROM Vendedor v
-        LEFT JOIN Empresa e ON v.IdEmpresa = e.IDEmpresa
+        LEFT JOIN Empresa e ON v.IdEmpresa = e.Id
         WHERE v.Id = ${id}
     `;
     return result.recordset[0];
