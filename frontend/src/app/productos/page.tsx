@@ -201,7 +201,6 @@ export default function ProductoPage() {
           isOpen={isSidebarOpen} 
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
         />
-        <AdminMode />
         <div className="flex-1">
           <header className="bg-white dark:bg-gray-800 shadow-sm">
             <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
@@ -211,7 +210,7 @@ export default function ProductoPage() {
             </div>
           </header>
 
-          <main className="h-full pb-16 overflow-y-auto">
+          <main className="flex-1 pb-16">
             <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
               {error && (
                 <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">

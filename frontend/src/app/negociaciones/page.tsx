@@ -470,7 +470,7 @@ export default function NegociacionesPage() {
           </div>
         </header>
 
-        <main className="h-full pb-16 overflow-y-auto">
+        <main className="flex-1 pb-16">
           <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
             {/* Stats Section */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
