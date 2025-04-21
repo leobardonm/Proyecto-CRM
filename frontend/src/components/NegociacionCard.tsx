@@ -1,5 +1,7 @@
+import React, { useState, useEffect } from 'react';
 import { DraggableProvided } from '@hello-pangea/dnd';
-import { useState, useEffect } from 'react';
+import { useAdmin } from '@/context/AdminContext';
+import { DeleteButton } from './DeleteButton';
 
 interface Producto {
   IDProducto: number;
@@ -25,6 +27,7 @@ interface ProductoNegociacion {
   Cantidad: number;
   PrecioUnitario: number;
   Subtotal: number;
+  Descripcion?: string;  // Make Descripcion optional since it might not always be present
 }
 
 interface NegociacionCardProps {
@@ -35,27 +38,28 @@ interface NegociacionCardProps {
   total: number;
   comision: number;
   provided?: DraggableProvided;
-  onEdit: (id: string, data: {
+  onEdit?: (id: string, data: {
     cliente: string;
     vendedor: string;
     productos: ProductoNegociacion[];
     total: number;
     comision: number;
   }) => void;
-  onDelete: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
-export default function NegociacionCard({ 
-  id, 
-  cliente: initialCliente, 
+const NegociacionCard: React.FC<NegociacionCardProps> = ({
+  id,
+  cliente: initialCliente,
   vendedor: initialVendedor,
   productos: initialProductos = [],
   total: initialTotal,
   comision: initialComision,
   provided,
   onEdit,
-  onDelete 
-}: NegociacionCardProps) {
+  onDelete
+}) => {
+  const { isAdmin } = useAdmin();
   const [isEditing, setIsEditing] = useState(false);
   const [cliente, setCliente] = useState(initialCliente);
   const [vendedor, setVendedor] = useState(initialVendedor);
@@ -65,6 +69,7 @@ export default function NegociacionCard({
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [productosDisponibles, setProductosDisponibles] = useState<Producto[]>([]);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     // Cargar datos necesarios
@@ -116,7 +121,7 @@ export default function NegociacionCard({
   };
 
   const handleSave = () => {
-    onEdit(id, { cliente, vendedor, productos, total, comision });
+    onEdit?.(id, { cliente, vendedor, productos, total, comision });
     setIsEditing(false);
   };
 
@@ -129,93 +134,132 @@ export default function NegociacionCard({
     setIsEditing(false);
   };
 
+  // Get the parent droppable ID to determine the card color
+  const getCardStyle = () => {
+    const status = provided?.draggableProps?.['data-rfd-draggable-context-id'] || '';
+    let baseStyle = 'transform transition-all duration-200 ease-in-out hover:scale-[1.02] hover:shadow-lg';
+    
+    if (status.includes('en-proceso')) {
+      return `${baseStyle} bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800/50 border-l-4 border-blue-500`;
+    } else if (status.includes('terminada')) {
+      return `${baseStyle} bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/50 dark:to-green-800/50 border-l-4 border-green-500`;
+    } else if (status.includes('cancelada')) {
+      return `${baseStyle} bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/50 dark:to-red-800/50 border-l-4 border-red-500`;
+    }
+    return `${baseStyle} bg-white dark:bg-gray-800`;
+  };
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    }).format(amount);
+  };
+
   return (
     <div
       ref={provided?.innerRef}
       {...(provided?.draggableProps || {})}
       {...(provided?.dragHandleProps || {})}
-      className="bg-white dark:bg-gray-800 p-4 rounded shadow-sm border border-gray-200 dark:border-gray-600"
+      className={`rounded-lg shadow-md overflow-hidden ${getCardStyle()}`}
     >
-      <div className="flex justify-between items-start mb-2">
-        {isEditing ? (
-          <div className="w-full space-y-2">
-            <select
-              value={cliente}
-              onChange={(e) => setCliente(e.target.value)}
-              className="w-full text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500 dark:text-white dark:border-gray-600"
-            >
-              <option value="">Seleccionar Cliente</option>
-              {clientes.map((c) => (
-                <option key={c.Id} value={c.Nombre}>{c.Nombre}</option>
-              ))}
-            </select>
-            <select
-              value={vendedor}
-              onChange={(e) => setVendedor(e.target.value)}
-              className="w-full text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500 dark:text-white dark:border-gray-600"
-            >
-              <option value="">Seleccionar Vendedor</option>
-              {vendedores.map((v) => (
-                <option key={v.Id} value={v.Nombre}>{v.Nombre}</option>
-              ))}
-            </select>
-          </div>
-        ) : (
+      <div className="p-4">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-3">
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              Cliente: {cliente || 'No asignado'}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Vendedor: {vendedor || 'No asignado'}
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+              {cliente}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Vendedor: {vendedor}
             </p>
           </div>
-        )}
-
-        <div className="flex space-x-2">
-          {isEditing ? (
-            <>
-              <button 
-                onClick={handleSave}
-                className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </button>
-              <button 
-                onClick={handleCancel}
-                className="p-1 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </>
-          ) : (
-            <>
-              <button 
+          {isAdmin && (
+            <div className="flex gap-2">
+              <button
                 onClick={() => setIsEditing(true)}
-                className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
               </button>
-              <button 
-                onClick={() => onDelete(id)}
-                className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </>
+              {onDelete && (
+                <DeleteButton 
+                  id={parseInt(id)}
+                  onDelete={async () => await onDelete(id)} 
+                />
+              )}
+            </div>
           )}
         </div>
-      </div>
 
-      <div className="mt-4">
-        {isEditing ? (
+        {/* Summary */}
+        <div className="grid grid-cols-2 gap-4 mb-3">
+          <div className="text-left">
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+              {formatCurrency(total)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Comisión</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+              {formatCurrency(comision)}
+            </p>
+          </div>
+        </div>
+
+        {/* Expand/Collapse Button */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none flex items-center justify-center gap-1 mt-2"
+        >
+          {isExpanded ? (
+            <>
+              <span>Ocultar productos</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+              </svg>
+            </>
+          ) : (
+            <>
+              <span>Ver productos</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </>
+          )}
+        </button>
+
+        {/* Productos List */}
+        {isExpanded && productos.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <div className="border-t dark:border-gray-700 pt-2">
+              {productos.map((producto, index) => (
+                <div
+                  key={`${producto.IDProducto}-${index}`}
+                  className="py-2 flex justify-between items-center text-sm"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {producto.Descripcion || `Producto ${producto.IDProducto}`}
+                    </p>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      {producto.Cantidad} × {formatCurrency(producto.PrecioUnitario)}
+                    </p>
+                  </div>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {formatCurrency(producto.Subtotal)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {isEditing && (
           <div className="space-y-2">
             {productos.map((producto, index) => (
               <div key={index} className="flex items-center gap-2">
@@ -286,34 +330,21 @@ export default function NegociacionCard({
               + Agregar Producto
             </button>
           </div>
-        ) : (
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              Productos:
-            </p>
-            {productos.map((producto, index) => {
-              const productoInfo = productosDisponibles.find(p => p.IDProducto === producto.IDProducto);
-              return (
-                <p key={index} className="text-xs text-gray-600 dark:text-gray-400">
-                  {productoInfo?.Descripcion || 'Producto no encontrado'} 
-                  - Cantidad: {producto.Cantidad} 
-                  - ${producto.Subtotal}
-                </p>
-              );
-            })}
-            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-900 dark:text-white">Total:</span>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center text-green-600 dark:text-green-400 font-medium">
-                <span className="text-sm">Comisión (15%):</span>
-                <span className="text-sm">${comision.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-          </div>
         )}
+
+        <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-gray-900 dark:text-white">Total:</span>
+            <span className="text-sm font-bold text-gray-900 dark:text-white">${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div className="flex justify-between items-center text-green-600 dark:text-green-400 font-medium">
+            <span className="text-sm">Comisión (15%):</span>
+            <span className="text-sm">${comision.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default NegociacionCard;

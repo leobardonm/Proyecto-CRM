@@ -584,11 +584,14 @@ export default function NegociacionesPage() {
             </div>
 
             <DragDropContext onDragEnd={handleDragEnd}>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Columna: En Proceso */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                  <div className="p-4 border-b dark:border-gray-700">
-                    <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                <div className="bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-lg border border-blue-100 dark:border-blue-900">
+                  <div className="p-4 border-b border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/50 rounded-t-lg">
+                    <h2 className="text-lg font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                       En Proceso
                     </h2>
                   </div>
@@ -597,7 +600,7 @@ export default function NegociacionesPage() {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className="p-4 space-y-4"
+                        className="p-6 space-y-6 min-h-[200px]"
                       >
                         {negociaciones['en-proceso'].map((negociacion, index) => (
                           <Draggable
@@ -629,9 +632,12 @@ export default function NegociacionesPage() {
                 </div>
 
                 {/* Columna: Terminada */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                  <div className="p-4 border-b dark:border-gray-700">
-                    <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                <div className="bg-gradient-to-br from-white to-green-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-lg border border-green-100 dark:border-green-900">
+                  <div className="p-4 border-b border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/50 rounded-t-lg">
+                    <h2 className="text-lg font-medium text-green-900 dark:text-green-100 flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                       Terminada
                     </h2>
                   </div>
@@ -640,7 +646,7 @@ export default function NegociacionesPage() {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className="p-4 space-y-4"
+                        className="p-6 space-y-6 min-h-[200px]"
                       >
                         {negociaciones['terminada'].map((negociacion, index) => (
                           <Draggable
@@ -672,9 +678,12 @@ export default function NegociacionesPage() {
                 </div>
 
                 {/* Columna: Cancelada */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                  <div className="p-4 border-b dark:border-gray-700">
-                    <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                <div className="bg-gradient-to-br from-white to-red-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-lg border border-red-100 dark:border-red-900">
+                  <div className="p-4 border-b border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/50 rounded-t-lg">
+                    <h2 className="text-lg font-medium text-red-900 dark:text-red-100 flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                       Cancelada
                     </h2>
                   </div>
@@ -683,7 +692,7 @@ export default function NegociacionesPage() {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className="p-4 space-y-4"
+                        className="p-6 space-y-6 min-h-[200px]"
                       >
                         {negociaciones['cancelada'].map((negociacion, index) => (
                           <Draggable
