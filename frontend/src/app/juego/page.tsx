@@ -4,6 +4,7 @@ import { useAdmin } from '@/context/AdminContext';
 import { IoGameControllerOutline } from 'react-icons/io5';
 import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
+import AdminMode from '@/components/AdminMode';
 
 export default function JuegoPage() {
   const { isAdmin } = useAdmin();
@@ -16,6 +17,7 @@ export default function JuegoPage() {
           isOpen={isSidebarOpen} 
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
         />
+        <AdminMode />
         <div className="flex-1">
           <header className="bg-white dark:bg-gray-800 shadow-sm">
             <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">

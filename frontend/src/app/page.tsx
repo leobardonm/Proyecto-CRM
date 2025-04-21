@@ -15,6 +15,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import AIAssistantButton from '@/components/AIAssistantButton';
+import AdminMode from '@/components/AdminMode';
 
 ChartJS.register(
   CategoryScale,
@@ -286,8 +287,7 @@ export default function Home() {
         isOpen={isSidebarOpen} 
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
       />
-
-      {/* Main Content */}
+      <AdminMode />
       <div className="flex-1">
         {/* Header */}
         <header className="bg-white dark:bg-gray-800 shadow-sm">

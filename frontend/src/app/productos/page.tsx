@@ -201,6 +201,7 @@ export default function ProductoPage() {
           isOpen={isSidebarOpen} 
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
         />
+        <AdminMode />
         <div className="flex-1">
           <header className="bg-white dark:bg-gray-800 shadow-sm">
             <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
