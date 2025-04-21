@@ -301,15 +301,19 @@ export default function NegociacionCard({
                 </p>
               );
             })}
-            <p className="text-sm font-medium text-gray-900 dark:text-white mt-2">
-              Total: ${total}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Comisión (15%): ${comision}
-            </p>
+            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">Total:</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between items-center text-green-600 dark:text-green-400 font-medium">
+                <span className="text-sm">Comisión (15%):</span>
+                <span className="text-sm">${comision.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
           </div>
         )}
       </div>
     </div>
   );
-} 
+}

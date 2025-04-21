@@ -104,10 +104,14 @@ export default function NegociacionesPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [totalClientes, setTotalClientes] = useState(0);
+  const [totalComision, setTotalComision] = useState(0);
+  const [totalNegocios, setTotalNegocios] = useState(0);
+  const [tasaExito, setTasaExito] = useState(0);
   const [negociaciones, setNegociaciones] = useState<EstadosNegociacion>({
     'en-proceso': [],
-    'cancelada': [],
-    'terminada': []
+    'terminada': [],
+    'cancelada': []
   });
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
@@ -122,7 +126,33 @@ export default function NegociacionesPage() {
     fetchClientes();
     fetchVendedores();
     fetchProductos();
+    fetchStats();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      const [clientesRes, negociacionesRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes`),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`)
+      ]);
+
+      if (clientesRes.ok && negociacionesRes.ok) {
+        const clientes = await clientesRes.json();
+        const negociaciones = await negociacionesRes.json();
+        
+        setTotalClientes(clientes.length);
+        setTotalNegocios(negociaciones.length);
+        
+        const terminadas = negociaciones.filter((n: Negociacion) => n.Estado === 3);
+        const totalComision = terminadas.reduce((sum: number, n: Negociacion) => sum + (n.Comision || 0), 0);
+        setTotalComision(totalComision);
+        
+        setTasaExito(negociaciones.length > 0 ? (terminadas.length / negociaciones.length) * 100 : 0);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
 
   const fetchNegociaciones = async () => {
     try {
@@ -242,23 +272,39 @@ export default function NegociacionesPage() {
       });
 
       if (response.ok) {
-        // If moving within the same column, use the same array
+        // Calculate new states before updating UI
+        let newSourceItems = sourceItems;
+        let newDestItems = Array.from(negociaciones[destination.droppableId as keyof EstadosNegociacion]);
+        
         if (source.droppableId === destination.droppableId) {
-          sourceItems.splice(destination.index, 0, movedItem);
-          setNegociaciones(prev => ({
-            ...prev,
-            [source.droppableId]: sourceItems
-          }));
+          // If moving within the same column
+          newSourceItems.splice(destination.index, 0, movedItem);
         } else {
-          // If moving to a different column, update both columns
-          const destItems = Array.from(negociaciones[destination.droppableId as keyof EstadosNegociacion]);
-          destItems.splice(destination.index, 0, movedItem);
-          setNegociaciones(prev => ({
-            ...prev,
-            [source.droppableId]: sourceItems,
-            [destination.droppableId]: destItems,
-          }));
+          // If moving to a different column
+          newDestItems.splice(destination.index, 0, movedItem);
         }
+
+        // Create the new state
+        const newNegociaciones = {
+          ...negociaciones,
+          [source.droppableId]: newSourceItems,
+          [destination.droppableId]: source.droppableId === destination.droppableId ? newSourceItems : newDestItems
+        };
+
+        // Calculate stats with the new state before updating UI
+        const allNegociaciones = [
+          ...newNegociaciones['en-proceso'],
+          ...newNegociaciones['terminada'],
+          ...newNegociaciones['cancelada']
+        ];
+        const terminadas = newNegociaciones['terminada'];
+        
+        setTotalNegocios(allNegociaciones.length);
+        setTotalComision(terminadas.reduce((sum, n) => sum + (n.Comision || 0), 0));
+        setTasaExito(allNegociaciones.length > 0 ? (terminadas.length / allNegociaciones.length) * 100 : 0);
+
+        // Update UI state
+        setNegociaciones(newNegociaciones);
       } else {
         const errorText = await response.text();
         console.error('Error al actualizar el estado de la negociación:', errorText);
@@ -280,6 +326,20 @@ export default function NegociacionesPage() {
       }));
       alert('Error al actualizar la negociación');
     }
+  };
+
+  // New helper function to update stats based on current state
+  const updateStats = () => {
+    const allNegociaciones = [
+      ...negociaciones['en-proceso'],
+      ...negociaciones['terminada'],
+      ...negociaciones['cancelada']
+    ];
+    const terminadas = negociaciones['terminada'];
+    
+    setTotalNegocios(allNegociaciones.length);
+    setTotalComision(terminadas.reduce((sum, n) => sum + (n.Comision || 0), 0));
+    setTasaExito(allNegociaciones.length > 0 ? (terminadas.length / allNegociaciones.length) * 100 : 0);
   };
 
   const handleCreateNegociacion = () => {
@@ -354,6 +414,8 @@ export default function NegociacionesPage() {
 
       setIsModalOpen(false);
       fetchNegociaciones();
+      // Update stats after creating new negotiation
+      updateStats();
       alert('Negociación creada exitosamente');
     } catch (error) {
       console.error('Error creating negociacion:', error);
@@ -374,6 +436,8 @@ export default function NegociacionesPage() {
 
         if (response.ok) {
           fetchNegociaciones();
+          // Update stats after deleting negotiation
+          updateStats();
         } else {
           const errorData = await response.json();
           alert(errorData.message || 'Error al eliminar la negociación');
@@ -408,6 +472,105 @@ export default function NegociacionesPage() {
 
         <main className="h-full pb-16 overflow-y-auto">
           <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+            {/* Stats Section */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+              <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 bg-blue-100 dark:bg-blue-900 rounded-md p-3">
+                      <svg className="h-6 w-6 text-blue-600 dark:text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                          Total Clientes
+                        </dt>
+                        <dd className="flex items-baseline">
+                          <div className="text-2xl font-semibold text-gray-900 dark:text-white">
+                            {totalClientes}
+                          </div>
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 bg-green-100 dark:bg-green-900 rounded-md p-3">
+                      <svg className="h-6 w-6 text-green-600 dark:text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                          Total Comisión
+                        </dt>
+                        <dd className="flex items-baseline">
+                          <div className="text-2xl font-semibold text-gray-900 dark:text-white">
+                            ${totalComision.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          </div>
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 bg-indigo-100 dark:bg-indigo-900 rounded-md p-3">
+                      <svg className="h-6 w-6 text-indigo-600 dark:text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                      </svg>
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                          Total Negocios
+                        </dt>
+                        <dd className="flex items-baseline">
+                          <div className="text-2xl font-semibold text-gray-900 dark:text-white">
+                            {totalNegocios}
+                          </div>
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 bg-yellow-100 dark:bg-yellow-900 rounded-md p-3">
+                      <svg className="h-6 w-6 text-yellow-600 dark:text-yellow-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                          Tasa de Éxito
+                        </dt>
+                        <dd className="flex items-baseline">
+                          <div className="text-2xl font-semibold text-gray-900 dark:text-white">
+                            {tasaExito.toFixed(1)}%
+                          </div>
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-end mb-4">
               {isAdmin && (
                 <div className="flex items-center space-x-4">
@@ -419,50 +582,9 @@ export default function NegociacionesPage() {
                 </div>
               )}
             </div>
+
             <DragDropContext onDragEnd={handleDragEnd}>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {/* Columna: Cancelada */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                  <div className="p-4 border-b dark:border-gray-700">
-                    <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-                      Cancelada
-                    </h2>
-                  </div>
-                  <Droppable droppableId="cancelada" isDropDisabled={!isAdmin}>
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className="p-4 space-y-4"
-                      >
-                        {negociaciones['cancelada'].map((negociacion, index) => (
-                          <Draggable
-                            key={negociacion.uniqueId || negociacion.IDNegociacion}
-                            draggableId={negociacion.uniqueId || negociacion.IDNegociacion.toString()}
-                            index={index}
-                          >
-                            {(provided) => (
-                              <NegociacionCard
-                                id={negociacion.IDNegociacion.toString()}
-                                cliente={negociacion.ClienteNombre}
-                                vendedor={negociacion.VendedorNombre}
-                                productos={negociacion.Productos || []}
-                                total={negociacion.Total}
-                                comision={negociacion.Comision}
-                                provided={provided}
-                                onEdit={(id, data) => {
-                                  // Implement edit if needed
-                                }}
-                                onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
-                              />
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
                 {/* Columna: En Proceso */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
                   <div className="p-4 border-b dark:border-gray-700">
@@ -506,7 +628,6 @@ export default function NegociacionesPage() {
                   </Droppable>
                 </div>
 
-
                 {/* Columna: Terminada */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
                   <div className="p-4 border-b dark:border-gray-700">
@@ -522,6 +643,49 @@ export default function NegociacionesPage() {
                         className="p-4 space-y-4"
                       >
                         {negociaciones['terminada'].map((negociacion, index) => (
+                          <Draggable
+                            key={negociacion.uniqueId || negociacion.IDNegociacion}
+                            draggableId={negociacion.uniqueId || negociacion.IDNegociacion.toString()}
+                            index={index}
+                          >
+                            {(provided) => (
+                              <NegociacionCard
+                                id={negociacion.IDNegociacion.toString()}
+                                cliente={negociacion.ClienteNombre}
+                                vendedor={negociacion.VendedorNombre}
+                                productos={negociacion.Productos || []}
+                                total={negociacion.Total}
+                                comision={negociacion.Comision}
+                                provided={provided}
+                                onEdit={(id, data) => {
+                                  // Implement edit if needed
+                                }}
+                                onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
+                              />
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </div>
+
+                {/* Columna: Cancelada */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+                  <div className="p-4 border-b dark:border-gray-700">
+                    <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                      Cancelada
+                    </h2>
+                  </div>
+                  <Droppable droppableId="cancelada" isDropDisabled={!isAdmin}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className="p-4 space-y-4"
+                      >
+                        {negociaciones['cancelada'].map((negociacion, index) => (
                           <Draggable
                             key={negociacion.uniqueId || negociacion.IDNegociacion}
                             draggableId={negociacion.uniqueId || negociacion.IDNegociacion.toString()}
