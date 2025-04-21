@@ -28,6 +28,7 @@ interface Negociacion {
   Monto: number;
   IdVendedor: number;
   IdCliente: number;
+  uniqueId?: string; // Add this field
 }
 
 interface NegociacionData {
@@ -213,8 +214,18 @@ export default function NegociacionesPage() {
 
     if (!destination) return;
 
+    // If dropped in the same position in the same column, do nothing
+    if (source.droppableId === destination.droppableId && source.index === destination.index) {
+      return;
+    }
+
     const sourceItems = Array.from(negociaciones[source.droppableId as keyof EstadosNegociacion]);
     const [movedItem] = sourceItems.splice(source.index, 1);
+
+    // Only create a new uniqueId if moving to a different column
+    if (source.droppableId !== destination.droppableId) {
+      movedItem.uniqueId = `${movedItem.IDNegociacion}_${Date.now()}`;
+    }
 
     const newEstado = destination.droppableId === 'en-proceso' ? 2 :
                      destination.droppableId === 'cancelada' ? 1 : 3;
@@ -231,15 +242,23 @@ export default function NegociacionesPage() {
       });
 
       if (response.ok) {
-        // Actualizar el estado local solo después de confirmar que la actualización fue exitosa
-        const destItems = Array.from(negociaciones[destination.droppableId as keyof EstadosNegociacion]);
-        destItems.splice(destination.index, 0, { ...movedItem, Estado: newEstado });
-
-        setNegociaciones(prev => ({
-          ...prev,
-          [source.droppableId]: sourceItems,
-          [destination.droppableId]: destItems,
-        }));
+        // If moving within the same column, use the same array
+        if (source.droppableId === destination.droppableId) {
+          sourceItems.splice(destination.index, 0, movedItem);
+          setNegociaciones(prev => ({
+            ...prev,
+            [source.droppableId]: sourceItems
+          }));
+        } else {
+          // If moving to a different column, update both columns
+          const destItems = Array.from(negociaciones[destination.droppableId as keyof EstadosNegociacion]);
+          destItems.splice(destination.index, 0, movedItem);
+          setNegociaciones(prev => ({
+            ...prev,
+            [source.droppableId]: sourceItems,
+            [destination.droppableId]: destItems,
+          }));
+        }
       } else {
         const errorText = await response.text();
         console.error('Error al actualizar el estado de la negociación:', errorText);
@@ -418,8 +437,8 @@ export default function NegociacionesPage() {
                       >
                         {negociaciones['cancelada'].map((negociacion, index) => (
                           <Draggable
-                            key={negociacion.IDNegociacion}
-                            draggableId={negociacion.IDNegociacion.toString()}
+                            key={negociacion.uniqueId || negociacion.IDNegociacion}
+                            draggableId={negociacion.uniqueId || negociacion.IDNegociacion.toString()}
                             index={index}
                           >
                             {(provided) => (
@@ -460,8 +479,8 @@ export default function NegociacionesPage() {
                       >
                         {negociaciones['en-proceso'].map((negociacion, index) => (
                           <Draggable
-                            key={negociacion.IDNegociacion}
-                            draggableId={negociacion.IDNegociacion.toString()}
+                            key={negociacion.uniqueId || negociacion.IDNegociacion}
+                            draggableId={negociacion.uniqueId || negociacion.IDNegociacion.toString()}
                             index={index}
                           >
                             {(provided) => (
@@ -504,8 +523,8 @@ export default function NegociacionesPage() {
                       >
                         {negociaciones['terminada'].map((negociacion, index) => (
                           <Draggable
-                            key={negociacion.IDNegociacion}
-                            draggableId={negociacion.IDNegociacion.toString()}
+                            key={negociacion.uniqueId || negociacion.IDNegociacion}
+                            draggableId={negociacion.uniqueId || negociacion.IDNegociacion.toString()}
                             index={index}
                           >
                             {(provided) => (
