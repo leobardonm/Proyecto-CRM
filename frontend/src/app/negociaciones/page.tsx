@@ -6,12 +6,31 @@ import NegociacionCard from '@/components/NegociacionCard';
 import AdminMode from '@/components/AdminMode';
 import { useAdmin } from '@/context/AdminContext';
 
+interface Cliente {
+  Id: number;
+  Nombre: string;
+  Email: string;
+}
+
+interface Vendedor {
+  Id: number;
+  Nombre: string;
+  Email: string;
+}
+
+interface Producto {
+  IDProducto: number;
+  Descripcion: string;
+  Precio: number;
+  Stock: number;
+}
+
 interface ProductoNegociacion {
   IDProducto: number;
   Cantidad: number;
   PrecioUnitario: number;
   Subtotal: number;
-  Descripcion: string;
+  Descripcion?: string;
 }
 
 interface Negociacion {
@@ -28,7 +47,7 @@ interface Negociacion {
   Monto: number;
   IdVendedor: number;
   IdCliente: number;
-  uniqueId?: string; // Add this field
+  uniqueId?: string;
 }
 
 interface NegociacionData {
@@ -56,25 +75,8 @@ interface ProductoData {
 
 interface EstadosNegociacion {
   'en-proceso': Negociacion[];
-  'cancelada': Negociacion[];
   'terminada': Negociacion[];
-}
-
-interface Cliente {
-  Id: number;
-  Nombre: string;
-}
-
-interface Vendedor {
-  Id: number;
-  Nombre: string;
-}
-
-interface Producto {
-  IDProducto: number;
-  Descripcion: string;
-  Precio: number;
-  Stock: number;
+  'cancelada': Negociacion[];
 }
 
 interface DraggableProvided {
@@ -83,20 +85,20 @@ interface DraggableProvided {
   innerRef: (element: HTMLElement | null) => void;
 }
 
-interface FormProductoNegociacion {
-  IDProducto: number;
-  Cantidad: number;
-  PrecioUnitario: number;
-  Subtotal: number;
-  Descripcion: string;
-}
-
 interface FormNegociacionData {
   cliente: string;
   vendedor: string;
   productos: FormProductoNegociacion[];
   total: number;
   comision: number;
+}
+
+interface FormProductoNegociacion {
+  IDProducto: number;
+  Cantidad: number;
+  PrecioUnitario: number;
+  Subtotal: number;
+  Descripcion: string;
 }
 
 export default function NegociacionesPage() {
@@ -122,119 +124,67 @@ export default function NegociacionesPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    fetchNegociaciones();
-    fetchClientes();
-    fetchVendedores();
-    fetchProductos();
-    fetchStats();
+    fetchAllData();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchAllData = async () => {
     try {
-      const [clientesRes, negociacionesRes] = await Promise.all([
+      const [negociacionesRes, clientesRes, vendedoresRes, productosRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`),
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes`),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`)
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendedores`),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`)
       ]);
 
-      if (clientesRes.ok && negociacionesRes.ok) {
-        const clientes = await clientesRes.json();
-        const negociaciones = await negociacionesRes.json();
-        
-        setTotalClientes(clientes.length);
-        setTotalNegocios(negociaciones.length);
-        
-        const terminadas = negociaciones.filter((n: Negociacion) => n.Estado === 3);
-        const totalComision = terminadas.reduce((sum: number, n: Negociacion) => sum + (n.Comision || 0), 0);
-        setTotalComision(totalComision);
-        
-        setTasaExito(negociaciones.length > 0 ? (terminadas.length / negociaciones.length) * 100 : 0);
-      }
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
+      const [negociacionesData, clientesData, vendedoresData, productosData] = await Promise.all([
+        negociacionesRes.json(),
+        clientesRes.json(),
+        vendedoresRes.json(),
+        productosRes.json()
+      ]);
 
-  const fetchNegociaciones = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Raw API response:', data);
-        
-        // Transform the data to match our interface
-        const negociaciones: Negociacion[] = data.map((n: NegociacionData) => {
-          console.log('Processing negotiation:', n);
-          return {
-            IDNegociacion: n.IDNegociacion,
-            ClienteNombre: n.ClienteNombre || '',
-            VendedorNombre: n.VendedorNombre || '',
-            Productos: (n.Productos || []).map((p: ProductoData) => ({
-              IDProducto: p.IDProducto,
-              Cantidad: p.Cantidad,
-              PrecioUnitario: p.PrecioUnitario,
-              Subtotal: p.Subtotal,
-              Descripcion: p.Descripcion
-            })),
-            Total: n.Total || 0,
-            Comision: n.Comision || 0,
-            Estado: n.Estado,
-            FechaInicio: n.FechaInicio,
-            FechaFin: n.FechaFin,
-            EstadoDescripcion: n.EstadoDescripcion || '',
-            Monto: n.Total || 0,
-            IdVendedor: n.IdVendedor,
-            IdCliente: n.IdCliente
-          };
-        });
+      // Transform and set negociaciones data
+      const transformedNegociaciones: Negociacion[] = negociacionesData.map((n: NegociacionData) => ({
+        IDNegociacion: n.IDNegociacion,
+        ClienteNombre: n.ClienteNombre || '',
+        VendedorNombre: n.VendedorNombre || '',
+        Productos: (n.Productos || []).map((p: ProductoData) => ({
+          IDProducto: p.IDProducto,
+          Cantidad: p.Cantidad,
+          PrecioUnitario: p.PrecioUnitario,
+          Subtotal: p.Subtotal,
+          Descripcion: p.Descripcion
+        })),
+        Total: n.Total || 0,
+        Comision: n.Comision || 0,
+        Estado: n.Estado,
+        FechaInicio: n.FechaInicio,
+        FechaFin: n.FechaFin,
+        EstadoDescripcion: n.EstadoDescripcion || '',
+        Monto: n.Total || 0,
+        IdVendedor: n.IdVendedor,
+        IdCliente: n.IdCliente
+      }));
 
-        const organizadas: EstadosNegociacion = {
-          'en-proceso': negociaciones.filter(n => n.Estado === 2),
-          'cancelada': negociaciones.filter(n => n.Estado === 1),
-          'terminada': negociaciones.filter(n => n.Estado === 3)
-        };
-        
-        setNegociaciones(organizadas);
-      } else {
-        console.error('Error response:', await response.text());
-      }
-    } catch (error) {
-      console.error('Error fetching negociaciones:', error);
-    }
-  };
+      const organizadas: EstadosNegociacion = {
+        'en-proceso': transformedNegociaciones.filter(n => n.Estado === 2),
+        'cancelada': transformedNegociaciones.filter(n => n.Estado === 1),
+        'terminada': transformedNegociaciones.filter(n => n.Estado === 3)
+      };
 
-  const fetchClientes = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes`);
-      if (response.ok) {
-        const data = await response.json();
-        setClientes(data);
-      }
+      setNegociaciones(organizadas);
+      setClientes(clientesData);
+      setVendedores(vendedoresData);
+      setProductos(productosData);
+      
+      // Update stats
+      setTotalClientes(clientesData.length);
+      setTotalNegocios(transformedNegociaciones.length);
+      const terminadas = transformedNegociaciones.filter(n => n.Estado === 3);
+      setTotalComision(terminadas.reduce((sum, n) => sum + (n.Comision || 0), 0));
+      setTasaExito(transformedNegociaciones.length > 0 ? (terminadas.length / transformedNegociaciones.length) * 100 : 0);
     } catch (error) {
-      console.error('Error fetching clientes:', error);
-    }
-  };
-
-  const fetchVendedores = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendedores`);
-      if (response.ok) {
-        const data = await response.json();
-        setVendedores(data);
-      }
-    } catch (error) {
-      console.error('Error fetching vendedores:', error);
-    }
-  };
-
-  const fetchProductos = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`);
-      if (response.ok) {
-        const data = await response.json();
-        setProductos(data);
-      }
-    } catch (error) {
-      console.error('Error fetching productos:', error);
+      console.error('Error fetching data:', error);
     }
   };
 
@@ -260,6 +210,41 @@ export default function NegociacionesPage() {
     const newEstado = destination.droppableId === 'en-proceso' ? 2 :
                      destination.droppableId === 'cancelada' ? 1 : 3;
 
+    // Update UI immediately
+    let newSourceItems = sourceItems;
+    let newDestItems = Array.from(negociaciones[destination.droppableId as keyof EstadosNegociacion]);
+    
+    if (source.droppableId === destination.droppableId) {
+      // If moving within the same column
+      newSourceItems.splice(destination.index, 0, movedItem);
+    } else {
+      // If moving to a different column
+      newDestItems.splice(destination.index, 0, movedItem);
+    }
+
+    // Create the new state
+    const newNegociaciones = {
+      ...negociaciones,
+      [source.droppableId]: newSourceItems,
+      [destination.droppableId]: source.droppableId === destination.droppableId ? newSourceItems : newDestItems
+    };
+
+    // Update UI state immediately
+    setNegociaciones(newNegociaciones);
+
+    // Calculate and update stats immediately
+    const allNegociaciones = [
+      ...newNegociaciones['en-proceso'],
+      ...newNegociaciones['terminada'],
+      ...newNegociaciones['cancelada']
+    ];
+    const terminadas = newNegociaciones['terminada'];
+    
+    setTotalNegocios(allNegociaciones.length);
+    setTotalComision(terminadas.reduce((sum, n) => sum + (n.Comision || 0), 0));
+    setTasaExito(allNegociaciones.length > 0 ? (terminadas.length / allNegociaciones.length) * 100 : 0);
+
+    // Make API call in the background
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${movedItem.IDNegociacion}`, {
         method: 'PUT',
@@ -271,59 +256,34 @@ export default function NegociacionesPage() {
         }),
       });
 
-      if (response.ok) {
-        // Calculate new states before updating UI
-        let newSourceItems = sourceItems;
-        let newDestItems = Array.from(negociaciones[destination.droppableId as keyof EstadosNegociacion]);
-        
-        if (source.droppableId === destination.droppableId) {
-          // If moving within the same column
-          newSourceItems.splice(destination.index, 0, movedItem);
-        } else {
-          // If moving to a different column
-          newDestItems.splice(destination.index, 0, movedItem);
-        }
-
-        // Create the new state
-        const newNegociaciones = {
-          ...negociaciones,
-          [source.droppableId]: newSourceItems,
-          [destination.droppableId]: source.droppableId === destination.droppableId ? newSourceItems : newDestItems
-        };
-
-        // Calculate stats with the new state before updating UI
-        const allNegociaciones = [
-          ...newNegociaciones['en-proceso'],
-          ...newNegociaciones['terminada'],
-          ...newNegociaciones['cancelada']
-        ];
-        const terminadas = newNegociaciones['terminada'];
-        
-        setTotalNegocios(allNegociaciones.length);
-        setTotalComision(terminadas.reduce((sum, n) => sum + (n.Comision || 0), 0));
-        setTasaExito(allNegociaciones.length > 0 ? (terminadas.length / allNegociaciones.length) * 100 : 0);
-
-        // Update UI state
-        setNegociaciones(newNegociaciones);
-      } else {
+      if (!response.ok) {
+        // If API call fails, revert the changes
         const errorText = await response.text();
         console.error('Error al actualizar el estado de la negociación:', errorText);
-        // Revertir el cambio en la UI
-        sourceItems.splice(source.index, 0, movedItem);
+        
+        // Revert the changes
+        const revertedSourceItems = Array.from(negociaciones[source.droppableId as keyof EstadosNegociacion]);
+        revertedSourceItems.splice(source.index, 0, movedItem);
+        
         setNegociaciones(prev => ({
           ...prev,
-          [source.droppableId]: sourceItems,
+          [source.droppableId]: revertedSourceItems,
         }));
+        
         alert('Error al actualizar el estado de la negociación');
       }
     } catch (error) {
       console.error('Error al actualizar la negociación:', error);
-      // Revertir el cambio en la UI
-      sourceItems.splice(source.index, 0, movedItem);
+      
+      // Revert the changes
+      const revertedSourceItems = Array.from(negociaciones[source.droppableId as keyof EstadosNegociacion]);
+      revertedSourceItems.splice(source.index, 0, movedItem);
+      
       setNegociaciones(prev => ({
         ...prev,
-        [source.droppableId]: sourceItems,
+        [source.droppableId]: revertedSourceItems,
       }));
+      
       alert('Error al actualizar la negociación');
     }
   };
@@ -413,7 +373,7 @@ export default function NegociacionesPage() {
       }
 
       setIsModalOpen(false);
-      fetchNegociaciones();
+      fetchAllData();
       // Update stats after creating new negotiation
       updateStats();
       alert('Negociación creada exitosamente');
@@ -435,7 +395,7 @@ export default function NegociacionesPage() {
         });
 
         if (response.ok) {
-          fetchNegociaciones();
+          fetchAllData();
           // Update stats after deleting negotiation
           updateStats();
         } else {
@@ -622,6 +582,9 @@ export default function NegociacionesPage() {
                                   // Implement edit if needed
                                 }}
                                 onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
+                                clientes={clientes}
+                                vendedores={vendedores}
+                                productosDisponibles={productos}
                               />
                             )}
                           </Draggable>
@@ -668,6 +631,9 @@ export default function NegociacionesPage() {
                                   // Implement edit if needed
                                 }}
                                 onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
+                                clientes={clientes}
+                                vendedores={vendedores}
+                                productosDisponibles={productos}
                               />
                             )}
                           </Draggable>
@@ -714,6 +680,9 @@ export default function NegociacionesPage() {
                                   // Implement edit if needed
                                 }}
                                 onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
+                                clientes={clientes}
+                                vendedores={vendedores}
+                                productosDisponibles={productos}
                               />
                             )}
                           </Draggable>
@@ -778,6 +747,9 @@ export default function NegociacionesPage() {
                 handleSubmitNegociacion(formData);
               }}
               onDelete={() => setIsModalOpen(false)}
+              clientes={clientes}
+              vendedores={vendedores}
+              productosDisponibles={productos}
             />
           </div>
         </div>

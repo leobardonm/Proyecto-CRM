@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { DraggableProvided } from '@hello-pangea/dnd';
 import { useAdmin } from '@/context/AdminContext';
 import { DeleteButton } from './DeleteButton';
@@ -46,6 +46,9 @@ interface NegociacionCardProps {
     comision: number;
   }) => void;
   onDelete?: (id: string) => void;
+  clientes?: Cliente[];
+  vendedores?: Vendedor[];
+  productosDisponibles?: Producto[];
 }
 
 const NegociacionCard: React.FC<NegociacionCardProps> = ({
@@ -57,7 +60,10 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
   comision: initialComision,
   provided,
   onEdit,
-  onDelete
+  onDelete,
+  clientes = [],
+  vendedores = [],
+  productosDisponibles = []
 }) => {
   const { isAdmin } = useAdmin();
   const [isEditing, setIsEditing] = useState(false);
@@ -66,37 +72,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
   const [productos, setProductos] = useState<ProductoNegociacion[]>(initialProductos);
   const [total, setTotal] = useState(initialTotal);
   const [comision, setComision] = useState(initialComision);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
-  const [productosDisponibles, setProductosDisponibles] = useState<Producto[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
-
-  useEffect(() => {
-    // Cargar datos necesarios
-    const fetchData = async () => {
-      try {
-        const [clientesRes, vendedoresRes, productosRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes`),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendedores`),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`)
-        ]);
-
-        const [clientesData, vendedoresData, productosData] = await Promise.all([
-          clientesRes.json(),
-          vendedoresRes.json(),
-          productosRes.json()
-        ]);
-
-        setClientes(clientesData);
-        setVendedores(vendedoresData);
-        setProductosDisponibles(productosData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   const calcularTotal = (productos: ProductoNegociacion[]) => {
     return productos.reduce((sum, prod) => sum + prod.Subtotal, 0);
