@@ -1,11 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDatabase } from '@/context/DatabaseContext';
+import { ChatMessage } from './chat/chat-message';
+import { ChatInput } from './chat/chat-input';
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export default function AIAssistant() {
-  const [question, setQuestion] = useState('');
-  const [response, setResponse] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const {
     getClientCount,
@@ -20,9 +26,21 @@ export default function AIAssistant() {
     getCompanies
   } = useDatabase();
 
-  const handleSubmit = async () => {
+  useEffect(() => {
+    // Add welcome message when component mounts
+    setMessages([{
+      role: 'assistant',
+      content: '¡Hola! 👋 Soy tu asistente de CRM. ¿En qué puedo ayudarte hoy? Puedo ayudarte con:\n\n• Información sobre clientes y vendedores\n• Detalles de negociaciones\n• Estadísticas y reportes\n• Cualquier otra consulta sobre tu CRM'
+    }]);
+  }, []);
+
+  const handleSubmit = async (question: string) => {
     if (!question) return;
+    
+    // Add user message
+    setMessages(prev => [...prev, { role: 'user', content: question }]);
     setLoading(true);
+    
     try {
       // Fetch necessary data for context
       const clients = await getClients();
@@ -67,47 +85,35 @@ export default function AIAssistant() {
       });
 
       const result = await response.json();
-      setResponse(result.candidates[0].content.parts[0].text);
+      const responseText = result.candidates[0].content.parts[0].text;
+      
+      // Add assistant message
+      setMessages(prev => [...prev, { role: 'assistant', content: responseText }]);
     } catch (error) {
       console.error('Error:', error);
-      setResponse('Error processing the request');
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Error processing the request' }]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Pregunta a Gemini 
-        </label>
-        <div className="mt-1 flex gap-2">
-          <input
-            type="text"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-            className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-            placeholder="Haz una pregunta..."
-            disabled={loading}
+    <div className="flex h-[600px] flex-col rounded-lg border border-gray-700 bg-[#1e293b] shadow-lg">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((message, index) => (
+          <ChatMessage
+            key={index}
+            role={message.role}
+            content={message.content}
           />
-          <button
-            onClick={handleSubmit}
-            disabled={!question || loading}
-            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Pensando...' : 'Enviar'}
-          </button>
-        </div>
+        ))}
       </div>
-
-      {response && (
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
-          <h3 className="text-lg font-medium mb-2">Respuesta:</h3>
-          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{response}</p>
-        </div>
-      )}
+      <div className="border-t border-gray-700">
+        <ChatInput
+          onSubmit={handleSubmit}
+          isLoading={loading}
+        />
+      </div>
     </div>
   );
 }
