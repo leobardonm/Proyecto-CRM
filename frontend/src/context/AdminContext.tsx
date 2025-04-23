@@ -38,9 +38,9 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
           const newAdminState = !isAdmin;
           setIsAdmin(newAdminState);
           localStorage.setItem('isAdmin', newAdminState.toString());
-        } else if (e.key === '2' && !isAdmin) {
-          // User switching (only when not in admin mode)
-          const newUser = currentUser === 1 ? 2 : 1;
+        } else if (e.key === '0' && !isAdmin) {
+          // Cycle through vendedores (1 to 5)
+          const newUser = currentUser >= 5 ? 1 : currentUser + 1;
           setCurrentUser(newUser);
           localStorage.setItem('currentUser', newUser.toString());
         }

@@ -41,7 +41,15 @@ export default function VendedoresPage() {
     {
       header: 'Nombre',
       accessor: 'Nombre',
-      key: 'nombre'
+      key: 'nombre',
+      cell: (row: Vendedor) => (
+        <button
+          onClick={() => window.location.href = `/negociaciones?vendedor=${row.Id}`}
+          className="text-left hover:text-blue-600 dark:hover:text-blue-400 font-medium cursor-pointer"
+        >
+          {row.Nombre}
+        </button>
+      )
     },
     {
       header: 'Email',
@@ -72,19 +80,19 @@ export default function VendedoresPage() {
         <div className="flex space-x-2">
           <button
             onClick={() => handleEditVendedor(row)}
-            className="text-blue-600 hover:text-blue-800"
+            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
           >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
           </button>
           <button
             onClick={() => handleDeleteVendedor(row.Id)}
-            className="text-red-600 hover:text-red-800"
+            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
           >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
           </button>
         </div>
       ),
@@ -210,7 +218,7 @@ export default function VendedoresPage() {
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
         />
         <AdminMode />
-        <div className="flex-1">
+        <div className={`flex-1 ${isSidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-300 ease-in-out`}>
           <header className="bg-white dark:bg-gray-800 shadow-sm">
             <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
               <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
@@ -221,7 +229,7 @@ export default function VendedoresPage() {
 
           <main className="flex-1 pb-16">
             <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
-            <div className="flex justify-end mb-4">
+              <div className="flex justify-end mb-4">
                 <button
                   onClick={() => setIsModalOpen(true)}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
@@ -237,100 +245,100 @@ export default function VendedoresPage() {
             </div>
           </main>
         </div>
-      </div>
 
-      {/* Modal para crear/editar vendedor */}
-      {isModalOpen && (
-        <div 
-          className="fixed inset-0 backdrop-blur-sm bg-black/30 z-50 flex items-center justify-center p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setIsModalOpen(false);
-            }
-          }}
-        >
+        {/* Modal para crear/editar vendedor */}
+        {isModalOpen && (
           <div 
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 backdrop-blur-sm bg-black/30 z-50 flex items-center justify-center p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setIsModalOpen(false);
+              }
+            }}
           >
-            <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {isEditMode ? 'Editar Vendedor' : 'Nuevo Vendedor'}
-              </h2>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Nombre
-                </label>
-                <input
-                  type="text"
-                  value={formData.Nombre}
-                  onChange={(e) => setFormData({ ...formData, Nombre: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={formData.Email}
-                  onChange={handleEmailChange}
-                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
-                    emailError ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  required
-                />
-                {emailError && (
-                  <p className="mt-1 text-sm text-red-600">{emailError}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Teléfono
-                </label>
-                <input
-                  type="tel"
-                  value={formData.Telefono}
-                  onChange={(e) => setFormData({ ...formData, Telefono: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 mt-6">
+            <div 
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {isEditMode ? 'Editar Vendedor' : 'Nuevo Vendedor'}
+                </h2>
                 <button
-                  type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                >
-                  {isEditMode ? 'Actualizar' : 'Crear'}
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Nombre
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.Nombre}
+                    onChange={(e) => setFormData({ ...formData, Nombre: e.target.value })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.Email}
+                    onChange={handleEmailChange}
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
+                      emailError ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    required
+                  />
+                  {emailError && (
+                    <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Teléfono
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.Telefono}
+                    onChange={(e) => setFormData({ ...formData, Telefono: e.target.value })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                    required
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  >
+                    {isEditMode ? 'Actualizar' : 'Guardar'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </AdminProtected>
   );
 }

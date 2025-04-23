@@ -4,6 +4,7 @@ import "./globals.css";
 import { AdminProvider } from '@/context/AdminContext';
 import { DatabaseProvider } from '@/context/DatabaseContext';
 import AdminMode from '@/components/AdminMode';
+import CurrentVendorInfo from '@/components/CurrentVendorInfo';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full bg-gray-50 dark:bg-gray-900`}>
         <AdminProvider>
           <DatabaseProvider>
+            <CurrentVendorInfo />
             {children}
           </DatabaseProvider>
         </AdminProvider>

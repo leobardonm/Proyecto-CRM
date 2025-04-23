@@ -120,7 +120,16 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const getVendors = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/vendedores`);
-      return await response.json();
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      // Ensure we return an array
+      if (!Array.isArray(data)) {
+        console.error('Vendors data is not an array:', data);
+        return [];
+      }
+      return data;
     } catch (error) {
       console.error('Error fetching vendors:', error);
       return [];

@@ -113,7 +113,8 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
   // Get the parent droppable ID to determine the card color
   const getCardStyle = () => {
     const status = provided?.draggableProps?.['data-rfd-draggable-context-id'] || '';
-    let baseStyle = 'transform transition-all duration-200 ease-in-out hover:scale-[1.02] hover:shadow-lg';
+    // Only add hover effects for draggable cards, not the modal
+    let baseStyle = provided ? 'transform transition-all duration-200 ease-in-out hover:scale-[1.02] hover:shadow-lg' : '';
     
     if (status.includes('en-proceso')) {
       return `${baseStyle} bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800/50 border-l-4 border-blue-500`;
@@ -122,7 +123,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
     } else if (status.includes('cancelada')) {
       return `${baseStyle} bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/50 dark:to-red-800/50 border-l-4 border-red-500`;
     }
-    return `${baseStyle} bg-white dark:bg-gray-800`;
+    return `${baseStyle} bg-[#1e293b] dark:bg-[#1e293b]`;
   };
 
   // Format currency
@@ -138,20 +139,58 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
       ref={provided?.innerRef}
       {...(provided?.draggableProps || {})}
       {...(provided?.dragHandleProps || {})}
-      className={`rounded-lg shadow-md overflow-hidden ${getCardStyle()}`}
+      className={`rounded-xl shadow-md overflow-hidden ${getCardStyle()}`}
     >
       <div className="p-4">
         {/* Header */}
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-              {cliente}
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Vendedor: {vendedor}
-            </p>
+        <div className="flex justify-between items-start mb-4">
+          <div className="w-full">
+            {id === "new" ? (
+              <>
+                <label className="block text-sm font-medium text-gray-200 mb-1">
+                  Cliente
+                </label>
+                <select
+                  value={cliente}
+                  onChange={(e) => setCliente(e.target.value)}
+                  className="w-full mb-4 px-3 py-2 text-white bg-[#2e3b4e] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Seleccionar Cliente</option>
+                  {clientes?.map((c) => (
+                    <option key={c.Id} value={c.Nombre}>
+                      {c.Nombre}
+                    </option>
+                  ))}
+                </select>
+
+                <label className="block text-sm font-medium text-gray-200 mb-1">
+                  Vendedor
+                </label>
+                <select
+                  value={vendedor}
+                  onChange={(e) => setVendedor(e.target.value)}
+                  className="w-full px-3 py-2 text-white bg-[#2e3b4e] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Seleccionar Vendedor</option>
+                  {vendedores?.map((v) => (
+                    <option key={v.Id} value={v.Nombre}>
+                      {v.Nombre}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                  {cliente}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Vendedor: {vendedor}
+                </p>
+              </>
+            )}
           </div>
-          {isAdmin && (
+          {isAdmin && id !== "new" && (
             <div className="flex gap-2">
               <button
                 onClick={() => setIsEditing(true)}
@@ -171,153 +210,181 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
           )}
         </div>
 
-        {/* Summary */}
-        <div className="grid grid-cols-2 gap-4 mb-3">
-          <div className="text-left">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total</p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">
-              {formatCurrency(total)}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Comisión</p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">
-              {formatCurrency(comision)}
-            </p>
-          </div>
-        </div>
-
-        {/* Expand/Collapse Button */}
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none flex items-center justify-center gap-1 mt-2"
-        >
-          {isExpanded ? (
-            <>
-              <span>Ocultar productos</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-              </svg>
-            </>
-          ) : (
-            <>
-              <span>Ver productos</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </>
-          )}
-        </button>
-
-        {/* Productos List */}
-        {isExpanded && productos.length > 0 && (
-          <div className="mt-3 space-y-2">
-            <div className="border-t dark:border-gray-700 pt-2">
+        {/* Products Section */}
+        {id === "new" && (
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-200 mb-3">
+              Productos
+            </label>
+            <div className="space-y-3">
               {productos.map((producto, index) => (
-                <div
-                  key={`${producto.IDProducto}-${index}`}
-                  className="py-2 flex justify-between items-center text-sm"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {producto.Descripcion || `Producto ${producto.IDProducto}`}
-                    </p>
-                    <p className="text-gray-500 dark:text-gray-400">
-                      {producto.Cantidad} × {formatCurrency(producto.PrecioUnitario)}
-                    </p>
-                  </div>
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {formatCurrency(producto.Subtotal)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {isEditing && (
-          <div className="space-y-2">
-            {productos.map((producto, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <select
-                  value={producto.IDProducto}
-                  onChange={(e) => {
-                    const nuevoProducto = productosDisponibles.find(p => p.IDProducto === Number(e.target.value));
-                    if (nuevoProducto) {
-                      const nuevosProductos = [...productos];
-                      nuevosProductos[index] = {
-                        IDProducto: nuevoProducto.IDProducto,
-                        Cantidad: 1,
-                        PrecioUnitario: nuevoProducto.Precio,
-                        Subtotal: nuevoProducto.Precio
-                      };
+                <div key={index} className="flex items-center gap-3 bg-[#2e3b4e] p-3 rounded-lg">
+                  <select
+                    value={producto.IDProducto}
+                    onChange={(e) => {
+                      const nuevoProducto = productosDisponibles.find(p => p.IDProducto === Number(e.target.value));
+                      if (nuevoProducto) {
+                        const nuevosProductos = [...productos];
+                        nuevosProductos[index] = {
+                          IDProducto: nuevoProducto.IDProducto,
+                          Cantidad: 1,
+                          PrecioUnitario: nuevoProducto.Precio,
+                          Subtotal: nuevoProducto.Precio
+                        };
+                        setProductos(nuevosProductos);
+                        const nuevoTotal = calcularTotal(nuevosProductos);
+                        setTotal(nuevoTotal);
+                        setComision(calcularComision(nuevoTotal));
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 text-white bg-[#1e293b] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar Producto</option>
+                    {productosDisponibles.map((p) => (
+                      <option key={p.IDProducto} value={p.IDProducto}>
+                        {p.Descripcion} - ${p.Precio}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min="1"
+                    value={producto.Cantidad}
+                    onChange={(e) => handleProductoChange(index, Number(e.target.value))}
+                    className="w-24 px-3 py-2 text-white bg-[#1e293b] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    placeholder="Cant."
+                  />
+                  <button
+                    onClick={() => {
+                      const nuevosProductos = productos.filter((_, i) => i !== index);
                       setProductos(nuevosProductos);
                       const nuevoTotal = calcularTotal(nuevosProductos);
                       setTotal(nuevoTotal);
                       setComision(calcularComision(nuevoTotal));
-                    }
-                  }}
-                  className="flex-1 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500 dark:text-white dark:border-gray-600"
-                >
-                  <option value="">Seleccionar Producto</option>
-                  {productosDisponibles.map((p) => (
-                    <option key={p.IDProducto} value={p.IDProducto}>
-                      {p.Descripcion} - ${p.Precio}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  min="1"
-                  value={producto.Cantidad}
-                  onChange={(e) => handleProductoChange(index, Number(e.target.value))}
-                  className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500 dark:text-white dark:border-gray-600"
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  ${producto.Subtotal}
-                </span>
-                <button
-                  onClick={() => {
-                    const nuevosProductos = productos.filter((_, i) => i !== index);
-                    setProductos(nuevosProductos);
-                    const nuevoTotal = calcularTotal(nuevosProductos);
-                    setTotal(nuevoTotal);
-                    setComision(calcularComision(nuevoTotal));
-                  }}
-                  className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={() => {
-                setProductos([...productos, {
-                  IDProducto: 0,
-                  Cantidad: 1,
-                  PrecioUnitario: 0,
-                  Subtotal: 0
-                }]);
-              }}
-              className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-            >
-              + Agregar Producto
-            </button>
+                    }}
+                    className="text-red-400 hover:text-red-300 p-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  setProductos([...productos, {
+                    IDProducto: 0,
+                    Cantidad: 1,
+                    PrecioUnitario: 0,
+                    Subtotal: 0
+                  }]);
+                }}
+                className="w-full px-4 py-2 text-sm text-white bg-[#2e3b4e] rounded-lg hover:bg-[#3e4b5e] transition-colors"
+              >
+                + Agregar Producto
+              </button>
+            </div>
           </div>
         )}
 
-        <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        {/* Regular card view */}
+        {id !== "new" && (
+          <>
+            {/* Summary */}
+            <div className="grid grid-cols-2 gap-4 mb-3">
+              <div className="text-left">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {formatCurrency(total)}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Comisión</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {formatCurrency(comision)}
+                </p>
+              </div>
+            </div>
+
+            {/* Expand/Collapse Button */}
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none flex items-center justify-center gap-1 mt-2"
+            >
+              {isExpanded ? (
+                <>
+                  <span>Ocultar productos</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+                  </svg>
+                </>
+              ) : (
+                <>
+                  <span>Ver productos</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </>
+              )}
+            </button>
+
+            {/* Productos List */}
+            {isExpanded && productos.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <div className="border-t dark:border-gray-700 pt-2">
+                  {productos.map((producto, index) => (
+                    <div
+                      key={`${producto.IDProducto}-${index}`}
+                      className="py-2 flex justify-between items-center text-sm"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {producto.Descripcion || `Producto ${producto.IDProducto}`}
+                        </p>
+                        <p className="text-gray-500 dark:text-gray-400">
+                          {producto.Cantidad} × {formatCurrency(producto.PrecioUnitario)}
+                        </p>
+                      </div>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {formatCurrency(producto.Subtotal)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Totals Section */}
+        <div className="mt-6 p-4 bg-[#2e3b4e] rounded-lg">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-900 dark:text-white">Total:</span>
-            <span className="text-sm font-bold text-gray-900 dark:text-white">${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+            <span className="text-sm font-medium text-gray-300">Total:</span>
+            <span className="text-lg font-bold text-white">${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
           </div>
-          <div className="flex justify-between items-center text-green-600 dark:text-green-400 font-medium">
-            <span className="text-sm">Comisión (15%):</span>
-            <span className="text-sm">${comision.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+          <div className="flex justify-between items-center text-green-400">
+            <span className="text-sm font-medium">Comisión (15%):</span>
+            <span className="text-lg font-medium">${comision.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
           </div>
         </div>
+
+        {/* Action Buttons for New Negotiation */}
+        {id === "new" && (
+          <div className="mt-6 flex gap-3">
+            <button
+              onClick={handleSave}
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Crear Negociación
+            </button>
+            <button
+              onClick={() => onDelete?.(id)}
+              className="px-4 py-2 text-sm font-medium text-gray-300 bg-[#2e3b4e] rounded-lg hover:bg-[#3e4b5e] focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

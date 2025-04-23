@@ -202,7 +202,7 @@ export default function ProductoPage() {
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
         />
         <AdminMode />
-        <div className="flex-1">
+        <div className={`flex-1 ${isSidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-300 ease-in-out`}>
           <header className="bg-white dark:bg-gray-800 shadow-sm">
             <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
               <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
