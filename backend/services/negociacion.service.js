@@ -100,36 +100,38 @@ const actualizarNegociacion = async (id, negociacion) => {
             throw new Error('La comisión debe ser un número positivo');
         }
 
-        let query = 'UPDATE Negociacion SET ';
-        const params = [];
-        
-        // Construir la consulta dinámicamente basada en los campos proporcionados
+        // Usar template strings para una consulta más segura y clara
+        const request = new sql.Request();
+        request.input('IDNegociacion', sql.Int, id);
+
+        let updateFields = [];
         if (EstadoID !== undefined) {
-            query += 'Estado = @EstadoID, ';
-            params.push({ name: 'EstadoID', value: EstadoID });
+            request.input('EstadoID', sql.Int, EstadoID);
+            updateFields.push('Estado = @EstadoID');
         }
         if (Total !== undefined) {
-            query += 'Total = @Total, ';
-            params.push({ name: 'Total', value: Total });
+            request.input('Total', sql.Decimal(10, 2), Total);
+            updateFields.push('Total = @Total');
         }
         if (Comision !== undefined) {
-            query += 'Comision = @Comision, ';
-            params.push({ name: 'Comision', value: Comision });
+            request.input('Comision', sql.Decimal(10, 2), Comision);
+            updateFields.push('Comision = @Comision');
         }
 
         // Si el estado es 3 (terminada) y es diferente al estado actual, actualizar la fecha de fin
         if (EstadoID === 3 && negociacionExistente.Estado !== 3) {
-            query += 'FechaFin = GETDATE(), ';
+            updateFields.push('FechaFin = GETDATE()');
         }
 
-        // Eliminar la última coma y espacio
-        query = query.slice(0, -2);
-        
-        // Agregar la condición WHERE
-        query += ' WHERE IDNegociacion = @IDNegociacion; SELECT * FROM Negociacion WHERE IDNegociacion = @IDNegociacion;';
-        params.push({ name: 'IDNegociacion', value: id });
+        const query = `
+            UPDATE Negociacion 
+            SET ${updateFields.join(', ')}
+            WHERE IDNegociacion = @IDNegociacion;
+            
+            SELECT * FROM Negociacion WHERE IDNegociacion = @IDNegociacion;
+        `;
 
-        const result = await sql.query(query, params);
+        const result = await request.query(query);
         
         if (result.rowsAffected[0] === 0) {
             throw new Error('No se pudo actualizar la negociación');
