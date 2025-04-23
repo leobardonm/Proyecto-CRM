@@ -43,3 +43,18 @@ Thumbs.db
 
 # Cache
 **/.cache
+
+# Ignore all files in the .env directory
+.env/*
+
+# Ignore all files in the .env.local directory
+.env.local/*
+
+#ignore all env files in the backend directory
+backend/.env*
+
+#ignore all env files in the frontend directory
+frontend/.env*
+
+
+
