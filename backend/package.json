@@ -14,9 +14,12 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@langchain/openai": "^0.5.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "langchain": "^0.3.23",
     "mssql": "^11.0.1",
     "socket.io": "^4.8.1"
   },
