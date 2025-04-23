@@ -1,0 +1,99 @@
+CREATE TABLE [Empresa] (
+    [IDEmpresa] INT  NOT NULL ,
+    [Nombre] VARCHAR(100)  NOT NULL ,
+    CONSTRAINT [PK_Empresa] PRIMARY KEY CLUSTERED (
+        [IDEmpresa] ASC
+    )
+)
+
+CREATE TABLE [Vendedor] (
+    [Id] INT IDENTITY(1,1) NOT NULL ,
+    [Nombre] varchar(250)  NOT NULL ,
+    [Telefono] varchar(255)  NOT NULL ,
+    [Email] varchar(250)  NOT NULL ,
+    [IdEmpresa] int  NOT NULL ,
+    CONSTRAINT [PK_Vendedor] PRIMARY KEY CLUSTERED (
+        [Id] ASC
+    )
+)
+
+CREATE TABLE [Cliente] (
+    [Id] INT IDENTITY(1,1) NOT NULL ,
+    [Nombre] varchar(250)  NOT NULL ,
+    [Direccion] varchar(255)  NOT NULL ,
+    [Telefono] varchar(255)  NOT NULL ,
+    [Email] VARCHAR(250)  NOT NULL ,
+    CONSTRAINT [PK_Cliente] PRIMARY KEY CLUSTERED (
+        [Id] ASC
+    )
+)
+
+CREATE TABLE [Negociacion] (
+    [IDNegociacion] INT IDENTITY(1,1) NOT NULL ,
+    [FechaInicio] DATE  NOT NULL ,
+    [FechaFin] DATE  NOT NULL ,
+    [Total] DECIMAL(10,2)  NOT NULL ,
+    [Estado] INT  NOT NULL ,
+    [IdCliente] INT  NOT NULL ,
+    [IdVendedor] INT  NOT NULL ,
+    [Comision] decimal(10,2)  NOT NULL ,
+    CONSTRAINT [PK_Negociacion] PRIMARY KEY CLUSTERED (
+        [IDNegociacion] ASC
+    )
+)
+
+CREATE TABLE [Productos] (
+    [IDProducto] INT IDENTITY(1,1) NOT NULL ,
+    [Stock] INT  NOT NULL ,
+    [Descripcion] VARCHAR(255)  NOT NULL ,
+    [Precio] DECIMAL(10,2)  NOT NULL ,
+    CONSTRAINT [PK_Productos] PRIMARY KEY CLUSTERED (
+        [IDProducto] ASC
+    )
+)
+
+CREATE TABLE [NegociacionProductos] (
+    [Cantidad] INT  NOT NULL ,
+    [Precio] DECIMAL(10,2)  NOT NULL ,
+    [Descripcion] VARCHAR(255)  NOT NULL ,
+    [IDNegociacion] INT  NOT NULL ,
+    [IDProducto] INT  NOT NULL 
+)
+
+CREATE TABLE [Estado] (
+    [Id] INT  NOT NULL ,
+    [Descripcion] VARCHAR(100)  NOT NULL ,
+    CONSTRAINT [PK_Estado] PRIMARY KEY CLUSTERED (
+        [Id] ASC
+    )
+)
+
+ALTER TABLE [Vendedor] WITH CHECK ADD CONSTRAINT [FK_Vendedor_IdEmpresa] FOREIGN KEY([IdEmpresa])
+REFERENCES [Empresa] ([IDEmpresa])
+
+ALTER TABLE [Vendedor] CHECK CONSTRAINT [FK_Vendedor_IdEmpresa]
+
+ALTER TABLE [Negociacion] WITH CHECK ADD CONSTRAINT [FK_Negociacion_Estado] FOREIGN KEY([Estado])
+REFERENCES [Estado] ([Id])
+
+ALTER TABLE [Negociacion] CHECK CONSTRAINT [FK_Negociacion_Estado]
+
+ALTER TABLE [Negociacion] WITH CHECK ADD CONSTRAINT [FK_Negociacion_IdCliente] FOREIGN KEY([IdCliente])
+REFERENCES [Cliente] ([Id])
+
+ALTER TABLE [Negociacion] CHECK CONSTRAINT [FK_Negociacion_IdCliente]
+
+ALTER TABLE [Negociacion] WITH CHECK ADD CONSTRAINT [FK_Negociacion_IdVendedor] FOREIGN KEY([IdVendedor])
+REFERENCES [Vendedor] ([Id])
+
+ALTER TABLE [Negociacion] CHECK CONSTRAINT [FK_Negociacion_IdVendedor]
+
+ALTER TABLE [NegociacionProductos] WITH CHECK ADD CONSTRAINT [FK_NegociacionProductos_IDNegociacion] FOREIGN KEY([IDNegociacion])
+REFERENCES [Negociacion] ([IDNegociacion])
+
+ALTER TABLE [NegociacionProductos] CHECK CONSTRAINT [FK_NegociacionProductos_IDNegociacion]
+
+ALTER TABLE [NegociacionProductos] WITH CHECK ADD CONSTRAINT [FK_NegociacionProductos_IDProducto] FOREIGN KEY([IDProducto])
+REFERENCES [Productos] ([IDProducto])
+
+ALTER TABLE [NegociacionProductos] CHECK CONSTRAINT [FK_NegociacionProductos_IDProducto]
