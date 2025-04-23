@@ -342,12 +342,26 @@ export default function Home() {
         });
     }
 
+    // Array de colores para los vendedores
+    const vendorColors = [
+      '#3b82f6', // Azul
+      '#22c55e', // Verde
+      '#ef4444', // Rojo
+      '#f59e0b', // Amarillo
+      '#8b5cf6', // Púrpura
+      '#ec4899', // Rosa
+      '#14b8a6', // Turquesa
+      '#f97316', // Naranja
+      '#6366f1', // Índigo
+      '#10b981', // Esmeralda
+    ];
+
     const vendorPerformanceData = {
       labels: Object.keys(vendorSales),
       datasets: [{
         label: 'Ventas por Vendedor',
         data: Object.values(vendorSales),
-        backgroundColor: '#22c55e',
+        backgroundColor: Object.keys(vendorSales).map((_, index) => vendorColors[index % vendorColors.length]),
         borderRadius: 6
       }]
     };
