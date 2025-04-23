@@ -108,8 +108,17 @@ const actualizarNegociacion = async (id, negociacion) => {
 };
 
 const eliminarNegociacion = async (id) => {
-    const result = await sql.query`DELETE FROM Negociacion WHERE IDNegociacion = ${id}`;
-    return result.rowsAffected[0] > 0;
+    try {
+        // Primero eliminamos los registros relacionados en NegociacionProductos
+        await sql.query`DELETE FROM NegociacionProductos WHERE IDNegociacion = ${id}`;
+        
+        // Luego eliminamos la negociación
+        const result = await sql.query`DELETE FROM Negociacion WHERE IDNegociacion = ${id}`;
+        return result.rowsAffected[0] > 0;
+    } catch (error) {
+        console.error('Error al eliminar la negociación:', error);
+        throw new Error(`Error al eliminar la negociación: ${error.message}`);
+    }
 };
 
 const obtenerVentasMesActual = async () => {
