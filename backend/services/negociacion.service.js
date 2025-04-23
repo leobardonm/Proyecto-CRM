@@ -78,33 +78,68 @@ const crearNegociacion = async (negociacion) => {
 };
 
 const actualizarNegociacion = async (id, negociacion) => {
-    const { EstadoID } = negociacion;
+    const { EstadoID, Total, Comision } = negociacion;
     
-    // Validar que el estado sea válido (1, 2 o 3)
-    if (![1, 2, 3].includes(EstadoID)) {
-        throw new Error('Estado inválido. Debe ser 1 (cancelada), 2 (en proceso) o 3 (terminada)');
-    }
+    try {
+        // Verificar que la negociación exista
+        const negociacionExistente = await obtenerNegociacionPorId(id);
+        if (!negociacionExistente) {
+            throw new Error('La negociación no existe');
+        }
 
-    // Si el estado es 3 (terminada), actualizar también la fecha de fin
-    if (EstadoID === 3) {
-        const result = await sql.query`
-            UPDATE Negociacion 
-            SET Estado = ${EstadoID},
-                FechaFin = GETDATE()
-            WHERE IDNegociacion = ${id};
-            SELECT * FROM Negociacion WHERE IDNegociacion = ${id};
-        `;
+        // Validar que el estado sea válido (1, 2 o 3)
+        if (EstadoID && ![1, 2, 3].includes(EstadoID)) {
+            throw new Error('Estado inválido. Debe ser 1 (cancelada), 2 (en proceso) o 3 (terminada)');
+        }
+
+        // Validar que Total y Comision sean números positivos si se proporcionan
+        if (Total !== undefined && (isNaN(Total) || Total < 0)) {
+            throw new Error('El total debe ser un número positivo');
+        }
+        if (Comision !== undefined && (isNaN(Comision) || Comision < 0)) {
+            throw new Error('La comisión debe ser un número positivo');
+        }
+
+        let query = 'UPDATE Negociacion SET ';
+        const params = [];
+        
+        // Construir la consulta dinámicamente basada en los campos proporcionados
+        if (EstadoID !== undefined) {
+            query += 'Estado = @EstadoID, ';
+            params.push({ name: 'EstadoID', value: EstadoID });
+        }
+        if (Total !== undefined) {
+            query += 'Total = @Total, ';
+            params.push({ name: 'Total', value: Total });
+        }
+        if (Comision !== undefined) {
+            query += 'Comision = @Comision, ';
+            params.push({ name: 'Comision', value: Comision });
+        }
+
+        // Si el estado es 3 (terminada) y es diferente al estado actual, actualizar la fecha de fin
+        if (EstadoID === 3 && negociacionExistente.Estado !== 3) {
+            query += 'FechaFin = GETDATE(), ';
+        }
+
+        // Eliminar la última coma y espacio
+        query = query.slice(0, -2);
+        
+        // Agregar la condición WHERE
+        query += ' WHERE IDNegociacion = @IDNegociacion; SELECT * FROM Negociacion WHERE IDNegociacion = @IDNegociacion;';
+        params.push({ name: 'IDNegociacion', value: id });
+
+        const result = await sql.query(query, params);
+        
+        if (result.rowsAffected[0] === 0) {
+            throw new Error('No se pudo actualizar la negociación');
+        }
+
         return result.recordset[0];
+    } catch (error) {
+        console.error('Error al actualizar la negociación:', error);
+        throw new Error(`Error al actualizar la negociación: ${error.message}`);
     }
-
-    // Para otros estados, solo actualizar el estado
-    const result = await sql.query`
-        UPDATE Negociacion 
-        SET Estado = ${EstadoID}
-        WHERE IDNegociacion = ${id};
-        SELECT * FROM Negociacion WHERE IDNegociacion = ${id};
-    `;
-    return result.recordset[0];
 };
 
 const eliminarNegociacion = async (id) => {
