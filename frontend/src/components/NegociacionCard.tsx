@@ -145,7 +145,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
           <div className="w-full">
-            {isEditing ? (
+            {(isEditing || id === "new") ? (
               <>
                 <label className="block text-sm font-medium text-gray-200 mb-1">
                   Cliente
@@ -211,7 +211,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
         </div>
 
         {/* Products Section */}
-        {isEditing && (
+        {(isEditing || id === "new") && (
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-200 mb-3">
               Productos
