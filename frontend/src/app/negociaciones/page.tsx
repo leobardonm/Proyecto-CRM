@@ -184,10 +184,12 @@ export default function NegociacionesPage() {
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`).then(res => res.json())
       ]);
 
-      // Filter negociaciones based on vendedor if not admin
+      // Filter negociaciones based on vendedor if not admin or if vendedorFilter is set
       const relevantNegociaciones = !isAdmin && currentUser
         ? negociacionesData.filter((n: any) => n.IdVendedor === currentUser)
-        : negociacionesData;
+        : vendedorFilter
+          ? negociacionesData.filter((n: any) => n.IdVendedor === vendedorFilter)
+          : negociacionesData;
 
       // Transform and set negociaciones data
       const transformedNegociaciones: Negociacion[] = relevantNegociaciones.map((n: NegociacionData) => ({
@@ -260,7 +262,7 @@ export default function NegociacionesPage() {
       setTotalComision(0);
       setTasaExito(0);
     }
-  }, [isAdmin, currentUser]);
+  }, [isAdmin, currentUser, vendedorFilter]);
 
   useEffect(() => {
     setIsMounted(true);
