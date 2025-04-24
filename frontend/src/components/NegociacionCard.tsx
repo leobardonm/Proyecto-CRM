@@ -145,7 +145,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
           <div className="w-full">
-            {id === "new" ? (
+            {isEditing ? (
               <>
                 <label className="block text-sm font-medium text-gray-200 mb-1">
                   Cliente
@@ -190,7 +190,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
               </>
             )}
           </div>
-          {isAdmin && id !== "new" && (
+          {isAdmin && id !== "new" && !isEditing && (
             <div className="flex gap-2">
               <button
                 onClick={() => setIsEditing(true)}
@@ -211,7 +211,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
         </div>
 
         {/* Products Section */}
-        {id === "new" && (
+        {isEditing && (
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-200 mb-3">
               Productos
@@ -229,7 +229,8 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
                           IDProducto: nuevoProducto.IDProducto,
                           Cantidad: 1,
                           PrecioUnitario: nuevoProducto.Precio,
-                          Subtotal: nuevoProducto.Precio
+                          Subtotal: nuevoProducto.Precio,
+                          Descripcion: nuevoProducto.Descripcion
                         };
                         setProductos(nuevosProductos);
                         const nuevoTotal = calcularTotal(nuevosProductos);
@@ -276,7 +277,8 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
                     IDProducto: 0,
                     Cantidad: 1,
                     PrecioUnitario: 0,
-                    Subtotal: 0
+                    Subtotal: 0,
+                    Descripcion: ''
                   }]);
                 }}
                 className="w-full px-4 py-2 text-sm text-white bg-[#2e3b4e] rounded-lg hover:bg-[#3e4b5e] transition-colors"
@@ -288,7 +290,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
         )}
 
         {/* Regular card view */}
-        {id !== "new" && (
+        {!isEditing && id !== "new" && (
           <>
             {/* Summary */}
             <div className="grid grid-cols-2 gap-4 mb-3">
@@ -368,8 +370,26 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
           </div>
         </div>
 
+        {/* Action Buttons for Editing */}
+        {isEditing && (
+          <div className="mt-6 flex gap-3">
+            <button
+              onClick={handleSave}
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Guardar Cambios
+            </button>
+            <button
+              onClick={handleCancel}
+              className="px-4 py-2 text-sm font-medium text-gray-300 bg-[#2e3b4e] rounded-lg hover:bg-[#3e4b5e] focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+
         {/* Action Buttons for New Negotiation */}
-        {id === "new" && (
+        {id === "new" && !isEditing && (
           <div className="mt-6 flex gap-3">
             <button
               onClick={handleSave}
