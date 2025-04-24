@@ -58,11 +58,11 @@ const actualizarNegociacion = async (req, res) => {
         if (!negociacionExistente) {
             return res.status(404).json({ message: 'Negociación no encontrada' });
         }
-
+/*
         // Validar que se proporcionen productos
         if (!productos || !Array.isArray(productos) || productos.length === 0) {
             return res.status(400).json({ error: 'Debe proporcionar al menos un producto' });
-        }
+        } */
 
         // Validar los datos de los productos
         for (const producto of productos) {
