@@ -5,6 +5,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import NegociacionCard from '@/components/NegociacionCard';
 import AdminMode from '@/components/AdminMode';
 import { useAdmin } from '@/context/AdminContext';
+import Notification from '@/components/Notification';
 
 interface Cliente {
   Id: number;
@@ -30,7 +31,7 @@ interface ProductoNegociacion {
   Cantidad: number;
   PrecioUnitario: number;
   Subtotal: number;
-  Descripcion?: string;
+  Descripcion: string;
 }
 
 interface Negociacion {
@@ -88,7 +89,7 @@ interface DraggableProvided {
 interface FormNegociacionData {
   cliente: string;
   vendedor: string;
-  productos: FormProductoNegociacion[];
+  productos: ProductoNegociacion[];
   total: number;
   comision: number;
 }
@@ -99,6 +100,12 @@ interface FormProductoNegociacion {
   PrecioUnitario: number;
   Subtotal: number;
   Descripcion: string;
+}
+
+interface NotificationState {
+  message: string;
+  type: 'success' | 'error' | 'info';
+  show: boolean;
 }
 
 export default function NegociacionesPage() {
@@ -123,6 +130,11 @@ export default function NegociacionesPage() {
   const [selectedProductos, setSelectedProductos] = useState<ProductoNegociacion[]>([]);
   const [vendedorFilter, setVendedorFilter] = useState<number | null>(null);
   const [currentVendedorName, setCurrentVendedorName] = useState<string>('');
+  const [notification, setNotification] = useState<NotificationState>({
+    message: '',
+    type: 'info',
+    show: false
+  });
 
   // Add isDragging state to prevent multiple drag operations
   const [isDragging, setIsDragging] = useState(false);
@@ -452,7 +464,7 @@ export default function NegociacionesPage() {
 
   const handleDeleteNegociacion = async (id: number) => {
     if (!isAdmin) {
-      alert('Solo los administradores pueden eliminar negociaciones');
+      showNotification('Solo los administradores pueden eliminar negociaciones', 'error');
       return;
     }
 
@@ -465,14 +477,85 @@ export default function NegociacionesPage() {
         if (response.ok) {
           fetchAllData();
           updateStats();
+          showNotification('Negociación eliminada exitosamente', 'success');
         } else {
           const errorData = await response.json();
-          alert(errorData.message || 'Error al eliminar la negociación');
+          showNotification(errorData.message || 'Error al eliminar la negociación', 'error');
         }
       } catch (error) {
         console.error('Error deleting negociacion:', error);
-        alert('Error al eliminar la negociación');
+        showNotification('Error al eliminar la negociación', 'error');
       }
+    }
+  };
+
+  const handleEditNegociacion = async (id: string, data: FormNegociacionData) => {
+    try {
+      if (!data.productos || data.productos.length === 0) {
+        throw new Error('Debe seleccionar al menos un producto');
+      }
+
+      const clienteSeleccionado = clientes.find(c => c.Nombre === data.cliente);
+      const vendedorSeleccionado = vendedores.find(v => v.Nombre === data.vendedor);
+
+      if (!clienteSeleccionado) {
+        throw new Error(`Cliente no encontrado: ${data.cliente}`);
+      }
+      if (!vendedorSeleccionado) {
+        throw new Error(`Vendedor no encontrado: ${data.vendedor}`);
+      }
+
+      // Actualizar la negociación
+      const negociacionResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          IdVendedor: vendedorSeleccionado.Id,
+          IdCliente: clienteSeleccionado.Id,
+          Total: data.total,
+          Comision: data.comision
+        }),
+      });
+
+      if (!negociacionResponse.ok) {
+        const errorData = await negociacionResponse.json();
+        throw new Error(errorData.error || 'Error al actualizar la negociación');
+      }
+
+      // Eliminar productos existentes
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociacion-productos/${id}`, {
+        method: 'DELETE',
+      });
+
+      // Agregar nuevos productos
+      for (const producto of data.productos) {
+        const productoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociacion-productos`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            IDNegociacion: parseInt(id),
+            IDProducto: producto.IDProducto,
+            Cantidad: producto.Cantidad,
+            Precio: producto.PrecioUnitario,
+            Descripcion: producto.Descripcion
+          }),
+        });
+
+        if (!productoResponse.ok) {
+          const errorData = await productoResponse.json();
+          throw new Error(errorData.message || errorData.error || 'Error al actualizar productos');
+        }
+      }
+
+      fetchAllData();
+      showNotification('Negociación actualizada exitosamente', 'success');
+    } catch (error) {
+      console.error('Error updating negociacion:', error);
+      showNotification(error instanceof Error ? error.message : 'Error al actualizar la negociación', 'error');
     }
   };
 
@@ -488,6 +571,14 @@ export default function NegociacionesPage() {
     setTotalNegocios(allNegociaciones.length);
     setTotalComision(terminadas.reduce((sum, n) => sum + (n.Comision || 0), 0));
     setTasaExito(allNegociaciones.length > 0 ? (terminadas.length / allNegociaciones.length) * 100 : 0);
+  };
+
+  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
+    setNotification({
+      message,
+      type,
+      show: true
+    });
   };
 
   if (!isMounted) {
@@ -618,8 +709,8 @@ export default function NegociacionesPage() {
             <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
               <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Columna: En Proceso */}
-                <div className="bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-lg border border-blue-100 dark:border-blue-900">
-                  <div className="p-4 border-b border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/50 rounded-t-lg">
+                <div className="bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-lg border border-blue-100 dark:border-blue-900 overflow-hidden">
+                  <div className="p-4 border-b border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/50">
                     <h2 className="text-lg font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -632,7 +723,7 @@ export default function NegociacionesPage() {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className="p-6 space-y-6 min-h-[200px]"
+                        className="p-6 space-y-6 min-h-[200px] max-h-[calc(100vh-300px)] overflow-y-auto"
                       >
                         {negociaciones['en-proceso'].map((negociacion, index) => (
                           <Draggable
@@ -641,22 +732,26 @@ export default function NegociacionesPage() {
                             index={index}
                           >
                             {(provided) => (
-                              <NegociacionCard
-                                id={negociacion.IDNegociacion.toString()}
-                                cliente={negociacion.ClienteNombre}
-                                vendedor={negociacion.VendedorNombre}
-                                productos={negociacion.Productos || []}
-                                total={negociacion.Total}
-                                comision={negociacion.Comision}
-                                provided={provided}
-                                onEdit={(id, data) => {
-                                  // Implement edit if needed
-                                }}
-                                onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
-                                clientes={clientes}
-                                vendedores={vendedores}
-                                productosDisponibles={productos}
-                              />
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className="mb-4"
+                              >
+                                <NegociacionCard
+                                  id={negociacion.IDNegociacion.toString()}
+                                  cliente={negociacion.ClienteNombre}
+                                  vendedor={negociacion.VendedorNombre}
+                                  productos={negociacion.Productos || []}
+                                  total={negociacion.Total}
+                                  comision={negociacion.Comision}
+                                  onEdit={handleEditNegociacion}
+                                  onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
+                                  clientes={clientes}
+                                  vendedores={vendedores}
+                                  productosDisponibles={productos}
+                                />
+                              </div>
                             )}
                           </Draggable>
                         ))}
@@ -667,8 +762,8 @@ export default function NegociacionesPage() {
                 </div>
 
                 {/* Columna: Terminada */}
-                <div className="bg-gradient-to-br from-white to-green-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-lg border border-green-100 dark:border-green-900">
-                  <div className="p-4 border-b border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/50 rounded-t-lg">
+                <div className="bg-gradient-to-br from-white to-green-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-lg border border-green-100 dark:border-green-900 overflow-hidden">
+                  <div className="p-4 border-b border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/50">
                     <h2 className="text-lg font-medium text-green-900 dark:text-green-100 flex items-center gap-2">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -681,7 +776,7 @@ export default function NegociacionesPage() {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className="p-6 space-y-6 min-h-[200px]"
+                        className="p-6 space-y-6 min-h-[200px] max-h-[calc(100vh-300px)] overflow-y-auto"
                       >
                         {negociaciones['terminada'].map((negociacion, index) => (
                           <Draggable
@@ -690,22 +785,26 @@ export default function NegociacionesPage() {
                             index={index}
                           >
                             {(provided) => (
-                              <NegociacionCard
-                                id={negociacion.IDNegociacion.toString()}
-                                cliente={negociacion.ClienteNombre}
-                                vendedor={negociacion.VendedorNombre}
-                                productos={negociacion.Productos || []}
-                                total={negociacion.Total}
-                                comision={negociacion.Comision}
-                                provided={provided}
-                                onEdit={(id, data) => {
-                                  // Implement edit if needed
-                                }}
-                                onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
-                                clientes={clientes}
-                                vendedores={vendedores}
-                                productosDisponibles={productos}
-                              />
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className="mb-4"
+                              >
+                                <NegociacionCard
+                                  id={negociacion.IDNegociacion.toString()}
+                                  cliente={negociacion.ClienteNombre}
+                                  vendedor={negociacion.VendedorNombre}
+                                  productos={negociacion.Productos || []}
+                                  total={negociacion.Total}
+                                  comision={negociacion.Comision}
+                                  onEdit={handleEditNegociacion}
+                                  onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
+                                  clientes={clientes}
+                                  vendedores={vendedores}
+                                  productosDisponibles={productos}
+                                />
+                              </div>
                             )}
                           </Draggable>
                         ))}
@@ -716,8 +815,8 @@ export default function NegociacionesPage() {
                 </div>
 
                 {/* Columna: Cancelada */}
-                <div className="bg-gradient-to-br from-white to-red-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-lg border border-red-100 dark:border-red-900">
-                  <div className="p-4 border-b border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/50 rounded-t-lg">
+                <div className="bg-gradient-to-br from-white to-red-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-lg border border-red-100 dark:border-red-900 overflow-hidden">
+                  <div className="p-4 border-b border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/50">
                     <h2 className="text-lg font-medium text-red-900 dark:text-red-100 flex items-center gap-2">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -730,7 +829,7 @@ export default function NegociacionesPage() {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className="p-6 space-y-6 min-h-[200px]"
+                        className="p-6 space-y-6 min-h-[200px] max-h-[calc(100vh-300px)] overflow-y-auto"
                       >
                         {negociaciones['cancelada'].map((negociacion, index) => (
                           <Draggable
@@ -739,22 +838,26 @@ export default function NegociacionesPage() {
                             index={index}
                           >
                             {(provided) => (
-                              <NegociacionCard
-                                id={negociacion.IDNegociacion.toString()}
-                                cliente={negociacion.ClienteNombre}
-                                vendedor={negociacion.VendedorNombre}
-                                productos={negociacion.Productos || []}
-                                total={negociacion.Total}
-                                comision={negociacion.Comision}
-                                provided={provided}
-                                onEdit={(id, data) => {
-                                  // Implement edit if needed
-                                }}
-                                onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
-                                clientes={clientes}
-                                vendedores={vendedores}
-                                productosDisponibles={productos}
-                              />
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className="mb-4"
+                              >
+                                <NegociacionCard
+                                  id={negociacion.IDNegociacion.toString()}
+                                  cliente={negociacion.ClienteNombre}
+                                  vendedor={negociacion.VendedorNombre}
+                                  productos={negociacion.Productos || []}
+                                  total={negociacion.Total}
+                                  comision={negociacion.Comision}
+                                  onEdit={handleEditNegociacion}
+                                  onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
+                                  clientes={clientes}
+                                  vendedores={vendedores}
+                                  productosDisponibles={productos}
+                                />
+                              </div>
                             )}
                           </Draggable>
                         ))}
@@ -824,6 +927,15 @@ export default function NegociacionesPage() {
             />
           </div>
         </div>
+      )}
+
+      {/* Notificación */}
+      {notification.show && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification({ ...notification, show: false })}
+        />
       )}
     </div>
   );
