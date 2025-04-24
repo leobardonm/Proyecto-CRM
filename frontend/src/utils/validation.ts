@@ -12,4 +12,21 @@ export const validateEmail = (email: string): string | null => {
     return 'Por favor ingrese un email válido (ejemplo@dominio.com)';
   }
   return null;
+};
+
+export const isValidPhone = (phone: string): boolean => {
+  // Remove any non-digit characters
+  const digitsOnly = phone.replace(/\D/g, '');
+  // Check if it has at least 10 digits
+  return digitsOnly.length >= 10;
+};
+
+export const validatePhone = (phone: string): string | null => {
+  if (!phone) {
+    return 'El teléfono es requerido';
+  }
+  if (!isValidPhone(phone)) {
+    return 'El teléfono debe tener al menos 10 dígitos';
+  }
+  return null;
 }; 

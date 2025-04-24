@@ -4,7 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import Table from '@/components/Table';
 import AdminProtected from '@/components/AdminProtected';
 import AdminMode from '@/components/AdminMode';
-import { validateEmail } from '@/utils/validation';
+import { validateEmail, validatePhone } from '@/utils/validation';
 
 interface Cliente {
   Id: number;
@@ -34,6 +34,7 @@ export default function ClientesPage() {
     Email: '',
   });
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const columns = [
     {
@@ -112,6 +113,14 @@ export default function ClientesPage() {
     }
     setEmailError(null);
 
+    // Validate phone
+    const phoneValidationError = validatePhone(formData.Telefono);
+    if (phoneValidationError) {
+      setPhoneError(phoneValidationError);
+      return;
+    }
+    setPhoneError(null);
+
     try {
       const url = isEditMode 
         ? `${process.env.NEXT_PUBLIC_API_URL}/clientes/${selectedCliente?.Id}`
@@ -185,6 +194,12 @@ export default function ClientesPage() {
     const newEmail = e.target.value;
     setFormData({ ...formData, Email: newEmail });
     setEmailError(validateEmail(newEmail));
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPhone = e.target.value;
+    setFormData({ ...formData, Telefono: newPhone });
+    setPhoneError(validatePhone(newPhone));
   };
 
   return (
@@ -286,10 +301,15 @@ export default function ClientesPage() {
                   <input
                     type="tel"
                     value={formData.Telefono}
-                    onChange={(e) => setFormData({ ...formData, Telefono: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                    onChange={handlePhoneChange}
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
+                      phoneError ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     required
                   />
+                  {phoneError && (
+                    <p className="mt-1 text-sm text-red-600">{phoneError}</p>
+                  )}
                 </div>
 
                 <div>
