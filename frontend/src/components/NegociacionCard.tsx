@@ -27,7 +27,7 @@ interface ProductoNegociacion {
   Cantidad: number;
   PrecioUnitario: number;
   Subtotal: number;
-  Descripcion?: string;  // Make Descripcion optional since it might not always be present
+  Descripcion: string;
 }
 
 interface NegociacionCardProps {
@@ -146,39 +146,43 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
         <div className="flex justify-between items-start mb-4">
           <div className="w-full">
             {(isEditing || id === "new") ? (
-              <>
-                <label className="block text-sm font-medium text-gray-200 mb-1">
-                  Cliente
-                </label>
-                <select
-                  value={cliente}
-                  onChange={(e) => setCliente(e.target.value)}
-                  className="w-full mb-4 px-3 py-2 text-white bg-[#2e3b4e] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccionar Cliente</option>
-                  {clientes?.map((c) => (
-                    <option key={c.Id} value={c.Nombre}>
-                      {c.Nombre}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-1">
+                    Cliente
+                  </label>
+                  <select
+                    value={cliente}
+                    onChange={(e) => setCliente(e.target.value)}
+                    className="w-full px-3 py-2 text-white bg-[#2e3b4e] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar Cliente</option>
+                    {clientes?.map((c) => (
+                      <option key={c.Id} value={c.Nombre}>
+                        {c.Nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                <label className="block text-sm font-medium text-gray-200 mb-1">
-                  Vendedor
-                </label>
-                <select
-                  value={vendedor}
-                  onChange={(e) => setVendedor(e.target.value)}
-                  className="w-full px-3 py-2 text-white bg-[#2e3b4e] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccionar Vendedor</option>
-                  {vendedores?.map((v) => (
-                    <option key={v.Id} value={v.Nombre}>
-                      {v.Nombre}
-                    </option>
-                  ))}
-                </select>
-              </>
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-1">
+                    Vendedor
+                  </label>
+                  <select
+                    value={vendedor}
+                    onChange={(e) => setVendedor(e.target.value)}
+                    className="w-full px-3 py-2 text-white bg-[#2e3b4e] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar Vendedor</option>
+                    {vendedores?.map((v) => (
+                      <option key={v.Id} value={v.Nombre}>
+                        {v.Nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             ) : (
               <>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
@@ -213,9 +217,28 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
         {/* Products Section */}
         {(isEditing || id === "new") && (
           <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-200 mb-3">
-              Productos
-            </label>
+            <div className="flex justify-between items-center mb-3">
+              <label className="block text-sm font-medium text-gray-200">
+                Productos
+              </label>
+              <button
+                onClick={() => {
+                  setProductos([...productos, {
+                    IDProducto: 0,
+                    Cantidad: 1,
+                    PrecioUnitario: 0,
+                    Subtotal: 0,
+                    Descripcion: ''
+                  }]);
+                }}
+                className="px-3 py-1 text-sm text-white bg-[#2e3b4e] rounded-lg hover:bg-[#3e4b5e] transition-colors flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Agregar
+              </button>
+            </div>
             <div className="space-y-3">
               {productos.map((producto, index) => (
                 <div key={index} className="flex items-center gap-3 bg-[#2e3b4e] p-3 rounded-lg">
@@ -271,20 +294,6 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
                   </button>
                 </div>
               ))}
-              <button
-                onClick={() => {
-                  setProductos([...productos, {
-                    IDProducto: 0,
-                    Cantidad: 1,
-                    PrecioUnitario: 0,
-                    Subtotal: 0,
-                    Descripcion: ''
-                  }]);
-                }}
-                className="w-full px-4 py-2 text-sm text-white bg-[#2e3b4e] rounded-lg hover:bg-[#3e4b5e] transition-colors"
-              >
-                + Agregar Producto
-              </button>
             </div>
           </div>
         )}
@@ -375,7 +384,8 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
           <div className="mt-6 flex gap-3">
             <button
               onClick={handleSave}
-              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={!cliente || !vendedor || productos.length === 0}
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Guardar Cambios
             </button>
@@ -393,7 +403,8 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
           <div className="mt-6 flex gap-3">
             <button
               onClick={handleSave}
-              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={!cliente || !vendedor || productos.length === 0}
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Crear Negociación
             </button>
