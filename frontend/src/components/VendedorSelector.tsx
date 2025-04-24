@@ -44,7 +44,7 @@ export default function VendedorSelector() {
         <FiUser className="w-4 h-4" />
         <span>Vendedor actual: {currentVendedor?.Nombre || 'Cargando...'}</span>
         <span className="text-xs text-gray-400">
-          (Ctrl+Alt+0 para cambiar)
+          (Ctrl+Alt+0 / ⌘+Alt+0 para cambiar)
         </span>
       </button>
 

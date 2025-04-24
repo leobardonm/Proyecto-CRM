@@ -32,7 +32,10 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && e.ctrlKey) {
+      // Check for both Ctrl+Alt and Meta+Alt (for Mac)
+      const isModifierPressed = (e.ctrlKey || e.metaKey) && e.altKey;
+      
+      if (isModifierPressed) {
         if (e.key === '1') {
           // Admin mode toggle
           const newAdminState = !isAdmin;
@@ -47,7 +50,8 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    // Add event listener with passive option for better performance
+    window.addEventListener('keydown', handleKeyDown, { passive: true });
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isAdmin, currentUser]);
 
