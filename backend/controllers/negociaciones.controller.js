@@ -1,5 +1,5 @@
 const negociacionService = require('../services/negociacion.service');
-const negociacionProductoService = require('../services/negociacionProducto.service');
+const negociacionProductoService = require('../services/negociacion-producto.service');
 
 const obtenerNegociaciones = async (req, res) => {
     try {
@@ -51,40 +51,52 @@ const crearNegociacion = async (req, res) => {
 const actualizarNegociacion = async (req, res) => {
     try {
         const { productos, ...negociacionData } = req.body;
+        const idNegociacion = parseInt(req.params.id);
 
         // Validar que la negociación exista
-        const negociacionExistente = await negociacionService.obtenerNegociacionPorId(req.params.id);
+        const negociacionExistente = await negociacionService.obtenerNegociacionPorId(idNegociacion);
         if (!negociacionExistente) {
             return res.status(404).json({ message: 'Negociación no encontrada' });
         }
 
-        // Validar que la negociación tenga productos
-        try {
-            await negociacionProductoService.validarProductosNegociacion(req.params.id);
-        } catch (error) {
-            return res.status(400).json({ error: error.message });
+        // Validar que se proporcionen productos
+        if (!productos || !Array.isArray(productos) || productos.length === 0) {
+            return res.status(400).json({ error: 'Debe proporcionar al menos un producto' });
         }
 
-        // Actualizar la negociación
-        const negociacionActualizada = await negociacionService.actualizarNegociacion(req.params.id, negociacionData);
-
-        // Si se proporcionan nuevos productos, actualizarlos
-        if (productos && Array.isArray(productos) && productos.length > 0) {
-            // Eliminar los productos existentes
-            await negociacionProductoService.eliminarProductosDeNegociacion(req.params.id);
-
-            // Agregar los nuevos productos
-            for (const producto of productos) {
-                await negociacionProductoService.agregarProducto({
-                    IDNegociacion: req.params.id,
-                    ...producto
-                });
+        // Validar los datos de los productos
+        for (const producto of productos) {
+            if (!producto.IDProducto || !producto.Cantidad || !producto.PrecioUnitario) {
+                return res.status(400).json({ error: 'Cada producto debe tener ID, cantidad y precio unitario' });
             }
         }
 
-        res.json(negociacionActualizada);
+        // Actualizar la negociación
+        const negociacionActualizada = await negociacionService.actualizarNegociacion(idNegociacion, negociacionData);
+
+        // Eliminar los productos existentes
+        await negociacionProductoService.eliminarProductosDeNegociacion(idNegociacion);
+
+        // Agregar los nuevos productos
+        for (const producto of productos) {
+            await negociacionProductoService.agregarProducto({
+                IDNegociacion: idNegociacion,
+                IDProducto: producto.IDProducto,
+                Cantidad: producto.Cantidad,
+                PrecioUnitario: producto.PrecioUnitario,
+                Descripcion: producto.Descripcion || ''
+            });
+        }
+
+        // Obtener la negociación actualizada con sus productos
+        const negociacionCompleta = await negociacionService.obtenerNegociacionPorId(idNegociacion);
+        res.json(negociacionCompleta);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error al actualizar la negociación:', error);
+        res.status(500).json({ 
+            error: 'Error al actualizar la negociación',
+            details: error.message 
+        });
     }
 };
 
