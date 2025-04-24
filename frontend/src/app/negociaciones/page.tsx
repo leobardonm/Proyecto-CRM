@@ -177,36 +177,17 @@ export default function NegociacionesPage() {
 
   const fetchAllData = useCallback(async () => {
     try {
-      const fetchWithErrorHandling = async (endpoint: string) => {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`);
-        if (!response.ok) {
-          throw new Error(`Error fetching ${endpoint}`);
-        }
-        return response.json();
-      };
-
-      let [negociacionesData, clientesData, vendedoresData, productosData] = await Promise.all([
-        fetchWithErrorHandling('/negociaciones'),
-        fetchWithErrorHandling('/clientes'),
-        fetchWithErrorHandling('/vendedores'),
-        fetchWithErrorHandling('/productos')
+      const [negociacionesData, clientesData, vendedoresData, productosData] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`).then(res => res.json()),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes`).then(res => res.json()),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendedores`).then(res => res.json()),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`).then(res => res.json())
       ]);
 
-      // Ensure we have arrays even if empty
-      negociacionesData = Array.isArray(negociacionesData) ? negociacionesData : [];
-      clientesData = Array.isArray(clientesData) ? clientesData : [];
-      vendedoresData = Array.isArray(vendedoresData) ? vendedoresData : [];
-      productosData = Array.isArray(productosData) ? productosData : [];
-
-      // Filter negotiations based on vendedor filter or current user
-      let relevantNegociaciones = negociacionesData;
-      if (vendedorFilter && isAdmin) {
-        // If admin is viewing a specific vendedor's negotiations
-        relevantNegociaciones = negociacionesData.filter((n: any) => n.IdVendedor === vendedorFilter);
-      } else if (!isAdmin && currentUser) {
-        // If vendedor is viewing their own negotiations
-        relevantNegociaciones = negociacionesData.filter((n: any) => n.IdVendedor === currentUser);
-      }
+      // Filter negociaciones based on vendedor if not admin
+      const relevantNegociaciones = !isAdmin && currentUser
+        ? negociacionesData.filter((n: any) => n.IdVendedor === currentUser)
+        : negociacionesData;
 
       // Transform and set negociaciones data
       const transformedNegociaciones: Negociacion[] = relevantNegociaciones.map((n: NegociacionData) => ({
@@ -239,16 +220,17 @@ export default function NegociacionesPage() {
 
       setNegociaciones(organizadas);
       
-      // Filter clients based on vendedor's negotiations if not admin
+      // Set all clients for vendedores to be able to create new negotiations
+      setClientes(clientesData);
+      
+      // Filter vendedores to only show current user if not admin
       if (!isAdmin && currentUser) {
-        const vendedorClients = new Set(relevantNegociaciones.map((n: any) => n.IdCliente));
-        const filteredClients = clientesData.filter((c: any) => vendedorClients.has(c.Id));
-        setClientes(filteredClients);
+        const currentVendedor = vendedoresData.find((v: any) => v.Id === currentUser);
+        setVendedores(currentVendedor ? [currentVendedor] : []);
       } else {
-        setClientes(clientesData);
+        setVendedores(vendedoresData);
       }
       
-      setVendedores(vendedoresData);
       setProductos(productosData);
       
       // Update stats with null checks
@@ -278,7 +260,7 @@ export default function NegociacionesPage() {
       setTotalComision(0);
       setTasaExito(0);
     }
-  }, [isAdmin, currentUser, vendedorFilter]);
+  }, [isAdmin, currentUser]);
 
   useEffect(() => {
     setIsMounted(true);

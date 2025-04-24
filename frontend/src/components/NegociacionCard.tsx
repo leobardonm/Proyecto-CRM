@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DraggableProvided } from '@hello-pangea/dnd';
 import { useAdmin } from '@/context/AdminContext';
 import { DeleteButton } from './DeleteButton';
@@ -65,7 +65,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
   vendedores = [],
   productosDisponibles = []
 }) => {
-  const { isAdmin } = useAdmin();
+  const { isAdmin, currentUser } = useAdmin();
   const [isEditing, setIsEditing] = useState(false);
   const [cliente, setCliente] = useState(initialCliente);
   const [vendedor, setVendedor] = useState(initialVendedor);
@@ -73,6 +73,14 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
   const [total, setTotal] = useState(initialTotal);
   const [comision, setComision] = useState(initialComision);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Set vendedor when in vendedor mode or when it changes
+  useEffect(() => {
+    if (!isAdmin && vendedores.length === 1) {
+      const currentVendedor = vendedores[0];
+      setVendedor(currentVendedor.Nombre);
+    }
+  }, [isAdmin, vendedores]);
 
   const calcularTotal = (productos: ProductoNegociacion[]) => {
     return productos.reduce((sum, prod) => sum + prod.Subtotal, 0);
@@ -166,23 +174,34 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-200 mb-1">
-                      Vendedor
-                    </label>
-                    <select
-                      value={vendedor}
-                      onChange={(e) => setVendedor(e.target.value)}
-                      className="w-full px-3 py-2 text-white bg-[#2e3b4e] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Seleccionar Vendedor</option>
-                      {vendedores?.map((v) => (
-                        <option key={v.Id} value={v.Nombre}>
-                          {v.Nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {isAdmin ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-200 mb-1">
+                        Vendedor
+                      </label>
+                      <select
+                        value={vendedor}
+                        onChange={(e) => setVendedor(e.target.value)}
+                        className="w-full px-3 py-2 text-white bg-[#2e3b4e] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Seleccionar Vendedor</option>
+                        {vendedores?.map((v) => (
+                          <option key={v.Id} value={v.Nombre}>
+                            {v.Nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-200 mb-1">
+                        Vendedor
+                      </label>
+                      <div className="px-3 py-2 text-white bg-[#2e3b4e] rounded-lg border border-gray-600">
+                        {vendedor}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
