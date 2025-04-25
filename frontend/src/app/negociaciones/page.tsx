@@ -1,111 +1,33 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '@/components/Sidebar';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import NegociacionCard from '@/components/NegociacionCard';
+import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import AdminMode from '@/components/AdminMode';
 import { useAdmin } from '@/context/AdminContext';
 import Notification from '@/components/Notification';
+import StatCard from '@/components/StatCard';
+import NegociacionColumn from '@/components/NegociacionColumn';
+import CreateNegociacionModal from '@/components/CreateNegociacionModal';
+import { 
+  Cliente, 
+  Vendedor, 
+  Producto, 
+  Negociacion, 
+  EstadosNegociacion, 
+  FormNegociacionData, 
+  NotificationState,
+  NegociacionData // Assuming NegociacionData is the raw API response type
+} from '@/types/negociaciones';
 
-interface Cliente {
-  Id: number;
-  Nombre: string;
-  Email: string;
-}
-
-interface Vendedor {
-  Id: number;
-  Nombre: string;
-  Email: string;
-}
-
-interface Producto {
-  IDProducto: number;
-  Descripcion: string;
-  Precio: number;
-  Stock: number;
-}
-
-interface ProductoNegociacion {
-  IDProducto: number;
-  Cantidad: number;
-  PrecioUnitario: number;
-  Subtotal: number;
-  Descripcion: string;
-}
-
-interface Negociacion {
-  IDNegociacion: number;
-  ClienteNombre: string;
-  VendedorNombre: string;
-  Productos: ProductoNegociacion[];
-  Total: number;
-  Comision: number;
-  Estado: number;
-  FechaInicio: string;
-  FechaFin: string;
-  EstadoDescripcion: string;
-  Monto: number;
-  IdVendedor: number;
-  IdCliente: number;
-  uniqueId?: string;
-}
-
-interface NegociacionData {
-  IDNegociacion: number;
-  ClienteNombre: string;
-  VendedorNombre: string;
-  Productos: ProductoData[];
-  Total: number;
-  Comision: number;
-  Estado: number;
-  FechaInicio: string;
-  FechaFin: string;
-  EstadoDescripcion: string;
-  IdVendedor: number;
-  IdCliente: number;
-}
-
-interface ProductoData {
-  IDProducto: number;
-  Cantidad: number;
-  PrecioUnitario: number;
-  Subtotal: number;
-  Descripcion: string;
-}
-
-interface EstadosNegociacion {
-  'en-proceso': Negociacion[];
-  'terminada': Negociacion[];
-  'cancelada': Negociacion[];
-}
-
-interface DraggableProvided {
-  draggableProps: any;
-  dragHandleProps: any;
-  innerRef: (element: HTMLElement | null) => void;
-}
-
-interface FormNegociacionData {
-  cliente: string;
-  vendedor: string;
-  productos: ProductoNegociacion[];
-  total: number;
-  comision: number;
-}
-
-interface FormProductoNegociacion {
-  IDProducto: number;
-  Cantidad: number;
-  PrecioUnitario: number;
-  Subtotal: number;
-  Descripcion: string;
-}
-
-interface NotificationState {
-  message: string;
-  type: 'success' | 'error' | 'info';
-  show: boolean;
+// Helper to safely parse JSON
+async function safeJsonParse(response: Response) {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("Failed to parse JSON:", text);
+    return { error: 'Invalid JSON response from server', details: text };
+  }
 }
 
 export default function NegociacionesPage() {
@@ -113,10 +35,14 @@ export default function NegociacionesPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  
+  // Stats State
   const [totalClientes, setTotalClientes] = useState(0);
   const [totalComision, setTotalComision] = useState(0);
   const [totalNegocios, setTotalNegocios] = useState(0);
   const [tasaExito, setTasaExito] = useState(0);
+
+  // Data State
   const [negociaciones, setNegociaciones] = useState<EstadosNegociacion>({
     'en-proceso': [],
     'terminada': [],
@@ -125,41 +51,157 @@ export default function NegociacionesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [selectedCliente, setSelectedCliente] = useState<string>('');
-  const [selectedVendedor, setSelectedVendedor] = useState<string>('');
-  const [selectedProductos, setSelectedProductos] = useState<ProductoNegociacion[]>([]);
+  
+  // Filter State
   const [vendedorFilter, setVendedorFilter] = useState<number | null>(null);
   const [currentVendedorName, setCurrentVendedorName] = useState<string>('');
+
+  // UI State
   const [notification, setNotification] = useState<NotificationState>({
     message: '',
     type: 'info',
     show: false
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDragging, setIsDragging] = useState(false); // Prevent updates while dragging
 
-  // Add isDragging state to prevent multiple drag operations
-  const [isDragging, setIsDragging] = useState(false);
+  // --- Utility Functions ---
+  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
+    setNotification({ message, type, show: true });
+  };
 
+  const updateStats = useCallback((currentNegociaciones: EstadosNegociacion, allClientes: Cliente[]) => {
+    const all = [
+      ...currentNegociaciones['en-proceso'],
+      ...currentNegociaciones['terminada'],
+      ...currentNegociaciones['cancelada']
+    ];
+    const terminadas = currentNegociaciones['terminada'];
+    
+    setTotalNegocios(all.length);
+    setTotalComision(terminadas.reduce((sum, n) => sum + (n.Comision || 0), 0));
+    setTasaExito(all.length > 0 ? (terminadas.length / all.length) * 100 : 0);
+
+    // Update client count based on available clients if admin, or related negotiations if not
+    const uniqueClients = !isAdmin && currentUser
+      ? new Set(all.map((n) => n.IdCliente))
+      : new Set(allClientes.map((c) => c.Id));
+    setTotalClientes(uniqueClients.size);
+
+  }, [isAdmin, currentUser]);
+
+  // --- Data Fetching --- 
+  const fetchAllData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [negociacionesRes, clientesRes, vendedoresRes, productosRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes`),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendedores`),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`)
+      ]);
+
+      const [negociacionesData, clientesData, vendedoresData, productosData] = await Promise.all([
+        negociacionesRes.ok ? negociacionesRes.json() : [],
+        clientesRes.ok ? clientesRes.json() : [],
+        vendedoresRes.ok ? vendedoresRes.json() : [],
+        productosRes.ok ? productosRes.json() : []
+      ]);
+
+      setClientes(clientesData);
+      setProductos(productosData);
+
+      // Filter vendedores based on admin status
+      if (!isAdmin && currentUser) {
+        const currentVendedor = vendedoresData.find((v: Vendedor) => v.Id === currentUser);
+        setVendedores(currentVendedor ? [currentVendedor] : []);
+      } else {
+        setVendedores(vendedoresData);
+      }
+      
+      // Filter and transform negociaciones
+      const relevantNegociacionesRaw = !isAdmin && currentUser
+        ? negociacionesData.filter((n: NegociacionData) => n.IdVendedor === currentUser)
+        : vendedorFilter
+          ? negociacionesData.filter((n: NegociacionData) => n.IdVendedor === vendedorFilter)
+          : negociacionesData;
+
+      const transformedNegociaciones: Negociacion[] = relevantNegociacionesRaw.map((n: NegociacionData): Negociacion => ({
+        IDNegociacion: n.IDNegociacion || 0,
+        ClienteNombre: n.ClienteNombre || '',
+        VendedorNombre: n.VendedorNombre || '',
+        Productos: Array.isArray(n.Productos) ? n.Productos.map(p => ({
+          IDProducto: p.IDProducto || 0,
+          Cantidad: p.Cantidad || 0,
+          PrecioUnitario: p.PrecioUnitario || 0,
+          Subtotal: p.Subtotal || 0,
+          Descripcion: p.Descripcion || ''
+        })) : [],
+        Total: n.Total || 0,
+        Comision: n.Comision || 0,
+        Estado: n.Estado || 0,
+        FechaInicio: n.FechaInicio || '',
+        FechaFin: n.FechaFin || '',
+        EstadoDescripcion: n.EstadoDescripcion || '',
+        Monto: n.Total || 0,
+        IdVendedor: n.IdVendedor || 0,
+        IdCliente: n.IdCliente || 0,
+        uniqueId: String(n.IDNegociacion) // Initial unique ID
+      }));
+
+      const organizadas: EstadosNegociacion = {
+        'en-proceso': transformedNegociaciones.filter(n => n.Estado === 2),
+        'cancelada': transformedNegociaciones.filter(n => n.Estado === 1),
+        'terminada': transformedNegociaciones.filter(n => n.Estado === 3)
+      };
+
+      setNegociaciones(organizadas);
+      updateStats(organizadas, clientesData);
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      showNotification('Error al cargar los datos. Intente de nuevo.', 'error');
+      // Set default empty states on error
+      setNegociaciones({ 'en-proceso': [], 'terminada': [], 'cancelada': [] });
+      setClientes([]);
+      setVendedores([]);
+      setProductos([]);
+      updateStats({ 'en-proceso': [], 'terminada': [], 'cancelada': [] }, []);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAdmin, currentUser, vendedorFilter, updateStats]);
+
+  // --- Effects --- 
   useEffect(() => {
-    // Get vendedor ID from URL query parameter
+    setIsMounted(true);
+    // Get vendedor ID from URL query parameter on initial mount
     const params = new URLSearchParams(window.location.search);
     const vendedorId = params.get('vendedor');
     if (vendedorId && !isNaN(Number(vendedorId))) {
       setVendedorFilter(Number(vendedorId));
+    } else {
+      fetchAllData(); // Fetch data if no filter initially
     }
-  }, []);
+  }, []); // Run only once on mount
 
-  // Add effect to update vendor name when filter changes
   useEffect(() => {
+    if (isMounted) {
+        fetchAllData(); // Fetch data when filter changes (or user changes)
+    }
+  }, [vendedorFilter, isAdmin, currentUser, fetchAllData, isMounted]);
+
+  useEffect(() => {
+    // Update vendor name display when filter or vendors list changes
     if (vendedorFilter) {
       const vendedor = vendedores.find(v => v.Id === vendedorFilter);
-      if (vendedor) {
-        setCurrentVendedorName(vendedor.Nombre);
-      }
+      setCurrentVendedorName(vendedor ? vendedor.Nombre : '');
     } else {
       setCurrentVendedorName('');
     }
   }, [vendedorFilter, vendedores]);
 
+  // --- Event Handlers ---
   const handleVendedorFilterChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
     const newVendedorId = value === 'all' ? null : Number(value);
@@ -175,193 +217,76 @@ export default function NegociacionesPage() {
     window.history.pushState({}, '', url.toString());
   };
 
-  const fetchAllData = useCallback(async () => {
-    try {
-      const [negociacionesData, clientesData, vendedoresData, productosData] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`).then(res => res.json()),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes`).then(res => res.json()),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendedores`).then(res => res.json()),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`).then(res => res.json())
-      ]);
-
-      // Filter negociaciones based on vendedor if not admin or if vendedorFilter is set
-      const relevantNegociaciones = !isAdmin && currentUser
-        ? negociacionesData.filter((n: any) => n.IdVendedor === currentUser)
-        : vendedorFilter
-          ? negociacionesData.filter((n: any) => n.IdVendedor === vendedorFilter)
-          : negociacionesData;
-
-      // Transform and set negociaciones data
-      const transformedNegociaciones: Negociacion[] = relevantNegociaciones.map((n: NegociacionData) => ({
-        IDNegociacion: n.IDNegociacion || 0,
-        ClienteNombre: n.ClienteNombre || '',
-        VendedorNombre: n.VendedorNombre || '',
-        Productos: Array.isArray(n.Productos) ? n.Productos.map((p: ProductoData) => ({
-          IDProducto: p.IDProducto || 0,
-          Cantidad: p.Cantidad || 0,
-          PrecioUnitario: p.PrecioUnitario || 0,
-          Subtotal: p.Subtotal || 0,
-          Descripcion: p.Descripcion || ''
-        })) : [],
-        Total: n.Total || 0,
-        Comision: n.Comision || 0,
-        Estado: n.Estado || 0,
-        FechaInicio: n.FechaInicio || '',
-        FechaFin: n.FechaFin || '',
-        EstadoDescripcion: n.EstadoDescripcion || '',
-        Monto: n.Total || 0,
-        IdVendedor: n.IdVendedor || 0,
-        IdCliente: n.IdCliente || 0
-      }));
-
-      const organizadas: EstadosNegociacion = {
-        'en-proceso': transformedNegociaciones.filter(n => n.Estado === 2),
-        'cancelada': transformedNegociaciones.filter(n => n.Estado === 1),
-        'terminada': transformedNegociaciones.filter(n => n.Estado === 3)
-      };
-
-      setNegociaciones(organizadas);
-      
-      // Set all clients for vendedores to be able to create new negotiations
-      setClientes(clientesData);
-      
-      // Filter vendedores to only show current user if not admin
-      if (!isAdmin && currentUser) {
-        const currentVendedor = vendedoresData.find((v: any) => v.Id === currentUser);
-        setVendedores(currentVendedor ? [currentVendedor] : []);
-      } else {
-        setVendedores(vendedoresData);
-      }
-      
-      setProductos(productosData);
-      
-      // Update stats with null checks
-      const uniqueClients = !isAdmin && currentUser
-        ? new Set(relevantNegociaciones.map((n: any) => n.IdCliente))
-        : new Set(clientesData.map((c: any) => c.Id));
-      
-      setTotalClientes(uniqueClients.size);
-      setTotalNegocios(transformedNegociaciones.length);
-      const terminadas = transformedNegociaciones.filter(n => n.Estado === 3);
-      setTotalComision(terminadas.reduce((sum, n) => sum + (n.Comision || 0), 0));
-      setTasaExito(transformedNegociaciones.length > 0 ? (terminadas.length / transformedNegociaciones.length) * 100 : 0);
-
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      // Set default empty states on error
-      setNegociaciones({
-        'en-proceso': [],
-        'terminada': [],
-        'cancelada': []
-      });
-      setClientes([]);
-      setVendedores([]);
-      setProductos([]);
-      setTotalClientes(0);
-      setTotalNegocios(0);
-      setTotalComision(0);
-      setTasaExito(0);
-    }
-  }, [isAdmin, currentUser, vendedorFilter]);
-
-  useEffect(() => {
-    setIsMounted(true);
-    fetchAllData();
-  }, [fetchAllData]);
-
   const handleDragStart = () => {
     setIsDragging(true);
   };
 
-  const handleDragEnd = async (result: { source: { droppableId: string; index: number }; destination: { droppableId: string; index: number } | null }) => {
+  const handleDragEnd = async (result: DropResult) => {
     setIsDragging(false);
-    const { source, destination } = result;
+    const { source, destination, draggableId } = result;
 
-    // If there's no destination or it's the same position, do nothing
     if (!destination || 
         (source.droppableId === destination.droppableId && 
          source.index === destination.index)) {
-      return;
+      return; // No move occurred
     }
 
+    // --- Optimistic UI Update --- 
+    const sourceDroppableId = source.droppableId as keyof EstadosNegociacion;
+    const destDroppableId = destination.droppableId as keyof EstadosNegociacion;
+    const negociacionId = parseInt(draggableId.split('_')[0]); // Get original ID
+
+    // Create a deep copy for manipulation
+    const currentNegociaciones = JSON.parse(JSON.stringify(negociaciones)) as EstadosNegociacion;
+    const sourceList = currentNegociaciones[sourceDroppableId];
+    const destList = currentNegociaciones[destDroppableId];
+
+    // Find and remove the item from source
+    const itemIndex = sourceList.findIndex(n => (n.uniqueId || n.IDNegociacion.toString()) === draggableId);
+    if (itemIndex === -1) {
+      console.error('Draggable item not found in source list');
+      return;
+    }
+    const [movedItem] = sourceList.splice(itemIndex, 1);
+
+    // Check permissions (redundant if fetch filters correctly, but good practice)
+    if (!isAdmin && movedItem.IdVendedor !== currentUser) {
+      showNotification('No tienes permiso para mover esta negociación.', 'error');
+      return; // Prevent unauthorized move
+    }
+
+    // Add to destination at the correct index
+    destList.splice(destination.index, 0, movedItem);
+
+    // Update state immediately for smooth UI
+    setNegociaciones(currentNegociaciones);
+    updateStats(currentNegociaciones, clientes); // Update stats optimistically
+    // --- End Optimistic UI Update ---
+
+    // --- API Call --- 
+    const newEstado = destDroppableId === 'en-proceso' ? 2 :
+                     destDroppableId === 'cancelada' ? 1 : 3;
+
     try {
-      // Create a deep copy of the current state
-      const newNegociaciones = {
-        'en-proceso': [...negociaciones['en-proceso']],
-        'terminada': [...negociaciones['terminada']],
-        'cancelada': [...negociaciones['cancelada']]
-      };
-
-      // Get the source and destination lists
-      const sourceList = newNegociaciones[source.droppableId as keyof EstadosNegociacion];
-      const destList = newNegociaciones[destination.droppableId as keyof EstadosNegociacion];
-
-      // Validate indices
-      if (!sourceList || !destList || source.index >= sourceList.length) {
-        console.error('Invalid source or destination');
-        return;
-      }
-
-      // Get the item being moved
-      const [movedItem] = sourceList.splice(source.index, 1);
-      if (!movedItem) {
-        console.error('Item not found');
-        return;
-      }
-
-      // Check permissions
-      if (!isAdmin && movedItem.IdVendedor !== currentUser) {
-        console.log('User not authorized to move this card');
-        return;
-      }
-
-      // Add uniqueId if moving to different column
-      if (source.droppableId !== destination.droppableId) {
-        movedItem.uniqueId = `${movedItem.IDNegociacion}_${Date.now()}`;
-      }
-
-      // Insert the item in the destination
-      destList.splice(destination.index, 0, movedItem);
-
-      // Update the state
-      setNegociaciones(newNegociaciones);
-
-      // Determine new status
-      const newEstado = destination.droppableId === 'en-proceso' ? 2 :
-                       destination.droppableId === 'cancelada' ? 1 : 3;
-
-      // Update stats
-      const allNegociaciones = [
-        ...newNegociaciones['en-proceso'],
-        ...newNegociaciones['terminada'],
-        ...newNegociaciones['cancelada']
-      ];
-      const terminadas = newNegociaciones['terminada'];
-      
-      setTotalNegocios(allNegociaciones.length);
-      setTotalComision(terminadas.reduce((sum, n) => sum + (n.Comision || 0), 0));
-      setTasaExito(allNegociaciones.length > 0 ? (terminadas.length / allNegociaciones.length) * 100 : 0);
-
-      // Make API call
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${movedItem.IDNegociacion}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${negociacionId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          EstadoID: newEstado
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ EstadoID: newEstado }),
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errorData = await safeJsonParse(response);
+        throw new Error(errorData.error || 'Error response from server');
       }
+      // Success - UI is already updated optimistically.
+      // Optional: Re-fetch for consistency, though maybe not needed if API is reliable.
+      // fetchAllData(); 
 
     } catch (error) {
-      console.error('Error during drag operation:', error);
-      // Revert to previous state by re-fetching data
-      fetchAllData();
-      alert('Error al actualizar la negociación');
+      console.error('Error updating negotiation status:', error);
+      showNotification(`Error al mover negociación: ${error instanceof Error ? error.message : 'Error desconocido'}`, 'error');
+      // Revert UI on failure by re-fetching original data
+      fetchAllData(); 
     }
   };
 
@@ -369,8 +294,14 @@ export default function NegociacionesPage() {
     setIsModalOpen(true);
   };
 
-  const handleSubmitNegociacion = async (data: FormNegociacionData) => {
+  const handleSubmitNewNegociacion = async (data: FormNegociacionData) => {
+    setIsModalOpen(false); // Close modal immediately
+    setIsLoading(true);
     try {
+      // Basic frontend validation (already done in modal, but good practice)
+      if (!data.cliente || !data.vendedor) {
+        throw new Error('Cliente y Vendedor son requeridos');
+      }
       if (!data.productos || data.productos.length === 0) {
         throw new Error('Debe seleccionar al menos un producto');
       }
@@ -378,71 +309,140 @@ export default function NegociacionesPage() {
       const clienteSeleccionado = clientes.find(c => c.Nombre === data.cliente);
       const vendedorSeleccionado = vendedores.find(v => v.Nombre === data.vendedor);
 
-      if (!clienteSeleccionado) {
-        throw new Error(`Cliente no encontrado: ${data.cliente}`);
-      }
-      if (!vendedorSeleccionado) {
-        throw new Error(`Vendedor no encontrado: ${data.vendedor}`);
-      }
+      if (!clienteSeleccionado) throw new Error(`Cliente no encontrado: ${data.cliente}`);
+      if (!vendedorSeleccionado) throw new Error(`Vendedor no encontrado: ${data.vendedor}`);
 
+      // Prepare products in the expected format
+      const productosParaEnviar = data.productos.map(p => ({
+        IDProducto: p.IDProducto,
+        Cantidad: p.Cantidad,
+        PrecioUnitario: p.PrecioUnitario,
+        Subtotal: p.Cantidad * p.PrecioUnitario, // Calculate subtotal frontend
+        Descripcion: p.Descripcion
+      }));
+
+      // 1. Create the main negotiation record including products
       const negociacionResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          EstadoID: 2, // En proceso
+          EstadoID: 2, // Default to 'En proceso'
           IdVendedor: vendedorSeleccionado.Id,
           IdCliente: clienteSeleccionado.Id,
           FechaInicio: new Date().toISOString().split('T')[0],
-          FechaFin: new Date().toISOString().split('T')[0],
+          FechaFin: new Date().toISOString().split('T')[0], // Default end date
           Total: data.total,
-          Comision: data.comision
+          Comision: data.comision,
+          productos: productosParaEnviar // lowercase 'productos' to match backend expectation
         }),
       });
 
       if (!negociacionResponse.ok) {
-        const errorData = await negociacionResponse.json();
-        throw new Error(errorData.error || 'Error al crear la negociación');
+        const errorData = await safeJsonParse(negociacionResponse);
+        // Check for specific error messages from backend
+        const errorMessage = errorData.message || errorData.error || 'Error al crear la negociación';
+        // Throw the specific message if available
+        throw new Error(errorMessage);
       }
 
-      const negociacionData = await negociacionResponse.json();
-      
-      if (!negociacionData.IDNegociacion) {
-        throw new Error('No se recibió el ID de la negociación');
-      }
 
-      const idNegociacion = negociacionData.IDNegociacion;
+      showNotification('Negociación creada exitosamente', 'success');
+      fetchAllData(); // Refresh data list
 
-      for (const producto of data.productos) {
-        const productoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociacion-productos`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            IDNegociacion: idNegociacion,
-            IDProducto: producto.IDProducto,
-            Cantidad: producto.Cantidad,
-            Precio: producto.PrecioUnitario,
-            Descripcion: producto.Descripcion
-          }),
-        });
-
-        if (!productoResponse.ok) {
-          const errorData = await productoResponse.json();
-          throw new Error(errorData.message || errorData.error || 'Error al agregar productos a la negociación');
-        }
-      }
-
-      setIsModalOpen(false);
-      fetchAllData();
-      // Update stats after creating new negotiation
-      updateStats();
-      alert('Negociación creada exitosamente');
     } catch (error) {
       console.error('Error creating negociacion:', error);
-      alert(error instanceof Error ? error.message : 'Error al crear la negociación');
+      showNotification(`Error al crear negociación: ${error instanceof Error ? error.message : 'Error desconocido'}`, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditNegociacion = async (id: string, data: FormNegociacionData) => {
+    setIsLoading(true);
+    const negociacionId = parseInt(id);
+    try {
+      // Validations
+      if (!data.cliente || !data.vendedor) throw new Error('Cliente y Vendedor son requeridos');
+      if (!data.productos || data.productos.length === 0) throw new Error('Debe seleccionar al menos un producto');
+
+      const clienteSeleccionado = clientes.find(c => c.Nombre === data.cliente);
+      const vendedorSeleccionado = vendedores.find(v => v.Nombre === data.vendedor);
+
+      if (!clienteSeleccionado) throw new Error(`Cliente no encontrado: ${data.cliente}`);
+      if (!vendedorSeleccionado) throw new Error(`Vendedor no encontrado: ${data.vendedor}`);
+
+      // Prepare products in the expected format for update
+      const productosParaEnviar = data.productos.map(p => ({
+        IDProducto: p.IDProducto,
+        Cantidad: p.Cantidad,
+        PrecioUnitario: p.PrecioUnitario,
+        Subtotal: p.Cantidad * p.PrecioUnitario, // Calculate subtotal frontend
+        Descripcion: p.Descripcion
+      }));
+
+      // 1. Update the main negotiation record including products
+      const negociacionResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${negociacionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          // Update editable fields
+          IdVendedor: vendedorSeleccionado.Id,
+          IdCliente: clienteSeleccionado.Id,
+          Total: data.total,
+          Comision: data.comision,
+          productos: productosParaEnviar // lowercase 'productos' to match backend expectation
+          // EstadoID is updated via drag-and-drop
+        }),
+      });
+
+      if (!negociacionResponse.ok) {
+        const errorData = await safeJsonParse(negociacionResponse);
+        throw new Error(errorData.message || errorData.error || 'Error al actualizar la negociación');
+      }
+
+      // 2. Remove logic for replacing associated products separately
+      /*
+      const deleteResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociacion-productos/${negociacionId}`, {
+        method: 'DELETE',
+      });
+      // Don't necessarily throw if delete fails (e.g., if no products existed), but log it.
+      if (!deleteResponse.ok) {
+          console.warn(`Could not delete existing products for negotiation ${negociacionId}. Proceeding to add new ones.`);
+      }
+
+      const addProductPromises = data.productos.map(producto => 
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociacion-productos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            IDNegociacion: negociacionId,
+            IDProducto: producto.IDProducto,
+            Cantidad: producto.Cantidad,
+            Precio: producto.PrecioUnitario, // API expects 'Precio'
+            Descripcion: producto.Descripcion
+          }),
+        })
+      );
+
+      const addProductResponses = await Promise.all(addProductPromises);
+      const failedAddProductResponse = addProductResponses.find(res => !res.ok);
+
+      if (failedAddProductResponse) {
+          const errorData = await safeJsonParse(failedAddProductResponse);
+          throw new Error(errorData.message || errorData.error || 'Error al actualizar uno o más productos');
+      }
+      */
+
+      showNotification('Negociación actualizada exitosamente', 'success');
+      fetchAllData(); // Refresh data list
+
+    } catch (error) {
+      console.error('Error updating negociacion:', error);
+      showNotification(`Error al actualizar negociación: ${error instanceof Error ? error.message : 'Error desconocido'}`, 'error');
+      // Consider if a partial revert or just re-fetching is appropriate
+      fetchAllData();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -453,121 +453,106 @@ export default function NegociacionesPage() {
     }
 
     if (window.confirm('¿Estás seguro de que deseas eliminar esta negociación? Esta acción no se puede deshacer.')) {
+      setIsLoading(true);
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${id}`, {
           method: 'DELETE',
         });
 
         if (response.ok) {
-          fetchAllData();
-          updateStats();
           showNotification('Negociación eliminada exitosamente', 'success');
+          fetchAllData(); // Refresh data
         } else {
-          const errorData = await response.json();
+          const errorData = await safeJsonParse(response);
           showNotification(errorData.message || 'Error al eliminar la negociación', 'error');
         }
       } catch (error) {
         console.error('Error deleting negociacion:', error);
-        showNotification('Error al eliminar la negociación', 'error');
+        showNotification(`Error al eliminar negociación: ${error instanceof Error ? error.message : 'Error desconocido'}`, 'error');
+      } finally {
+        setIsLoading(false);
       }
     }
   };
 
-  const handleEditNegociacion = async (id: string, data: FormNegociacionData) => {
-    try {
-      if (!data.productos || data.productos.length === 0) {
-        throw new Error('Debe seleccionar al menos un producto');
-      }
-
-      const clienteSeleccionado = clientes.find(c => c.Nombre === data.cliente);
-      const vendedorSeleccionado = vendedores.find(v => v.Nombre === data.vendedor);
-
-      if (!clienteSeleccionado) {
-        throw new Error(`Cliente no encontrado: ${data.cliente}`);
-      }
-      if (!vendedorSeleccionado) {
-        throw new Error(`Vendedor no encontrado: ${data.vendedor}`);
-      }
-
-      // Actualizar la negociación
-      const negociacionResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociaciones/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          IdVendedor: vendedorSeleccionado.Id,
-          IdCliente: clienteSeleccionado.Id,
-          Total: data.total,
-          Comision: data.comision
-        }),
-      });
-
-      if (!negociacionResponse.ok) {
-        const errorData = await negociacionResponse.json();
-        throw new Error(errorData.error || 'Error al actualizar la negociación');
-      }
-
-      // Eliminar productos existentes
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociacion-productos/${id}`, {
-        method: 'DELETE',
-      });
-
-      // Agregar nuevos productos
-      for (const producto of data.productos) {
-        const productoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/negociacion-productos`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            IDNegociacion: parseInt(id),
-            IDProducto: producto.IDProducto,
-            Cantidad: producto.Cantidad,
-            Precio: producto.PrecioUnitario,
-            Descripcion: producto.Descripcion
-          }),
-        });
-
-        if (!productoResponse.ok) {
-          const errorData = await productoResponse.json();
-          throw new Error(errorData.message || errorData.error || 'Error al actualizar productos');
-        }
-      }
-
-      fetchAllData();
-      showNotification('Negociación actualizada exitosamente', 'success');
-    } catch (error) {
-      console.error('Error updating negociacion:', error);
-      showNotification(error instanceof Error ? error.message : 'Error al actualizar la negociación', 'error');
-    }
-  };
-
-  // New helper function to update stats based on current state
-  const updateStats = () => {
-    const allNegociaciones = [
-      ...negociaciones['en-proceso'],
-      ...negociaciones['terminada'],
-      ...negociaciones['cancelada']
-    ];
-    const terminadas = negociaciones['terminada'];
-    
-    setTotalNegocios(allNegociaciones.length);
-    setTotalComision(terminadas.reduce((sum, n) => sum + (n.Comision || 0), 0));
-    setTasaExito(allNegociaciones.length > 0 ? (terminadas.length / allNegociaciones.length) * 100 : 0);
-  };
-
-  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
-    setNotification({
-      message,
-      type,
-      show: true
-    });
-  };
-
+  // --- Render Logic --- 
   if (!isMounted) {
-    return null; // Evita el renderizado inicial en el cliente
+    // Prevent rendering mismatch during SSR/hydration
+    // Optionally show a basic loading skeleton here
+    return (
+        <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+             <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+             <div className={`flex-1 ${isSidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-300 ease-in-out`}>
+                <div className="flex items-center justify-center h-screen">
+                    <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+            </div>
+        </div>
+    );
   }
+
+  // Define icons and colors for columns/stats
+  const icons = {
+    cliente: (
+      <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
+        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    ),
+    comision: (
+      <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
+        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    negocios: (
+       <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
+         <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+       </svg>
+    ),
+    tasaExito: (
+       <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
+         <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+       </svg>
+    ),
+    enProceso: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    terminada: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    cancelada: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    )
+  };
+
+  const columnStyles = {
+    'en-proceso': {
+      bgGradient: 'from-white to-blue-50 dark:from-gray-800 dark:to-gray-900',
+      border: 'border-blue-100 dark:border-blue-900',
+      headerBg: 'bg-blue-50/50 dark:bg-blue-900/50',
+      headerBorder: 'border-blue-200 dark:border-blue-800',
+      headerText: 'text-blue-900 dark:text-blue-100'
+    },
+    'terminada': {
+      bgGradient: 'from-white to-green-50 dark:from-gray-800 dark:to-gray-900',
+      border: 'border-green-100 dark:border-green-900',
+      headerBg: 'bg-green-50/50 dark:bg-green-900/50',
+      headerBorder: 'border-green-200 dark:border-green-800',
+      headerText: 'text-green-900 dark:text-green-100'
+    },
+    'cancelada': {
+      bgGradient: 'from-white to-red-50 dark:from-gray-800 dark:to-gray-900',
+      border: 'border-red-100 dark:border-red-900',
+      headerBg: 'bg-red-50/50 dark:bg-red-900/50',
+      headerBorder: 'border-red-200 dark:border-red-800',
+      headerText: 'text-red-900 dark:text-red-100'
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -577,12 +562,13 @@ export default function NegociacionesPage() {
       />
       <AdminMode />
       <div className={`flex-1 ${isSidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-300 ease-in-out`}>
-        <header className="bg-white dark:bg-gray-800 shadow-sm">
+        <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
           <div className="px-4 py-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div className="flex justify-between items-center">
               <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
                 {currentVendedorName ? `Negociaciones de ${currentVendedorName}` : 'Negociaciones'}
               </h1>
+              {/* Optional: Add Header actions here if needed */}
             </div>
           </div>
         </header>
@@ -591,11 +577,12 @@ export default function NegociacionesPage() {
           <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
             {/* Vendor Filter Section */}
             {isAdmin && (
-              <div className="mb-6">
+              <div className="mb-6 flex justify-between items-center">
                 <select
                   value={vendedorFilter || 'all'}
                   onChange={handleVendedorFilterChange}
                   className="block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
+                  disabled={isLoading}
                 >
                   <option value="all">Todos los vendedores</option>
                   {vendedores.map((vendedor) => (
@@ -604,316 +591,117 @@ export default function NegociacionesPage() {
                     </option>
                   ))}
                 </select>
+                <button
+                  onClick={handleCreateNegociacion}
+                  disabled={isLoading}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50">
+                  Nueva Negociación
+                </button>
               </div>
             )}
 
             {/* Stats Section */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-              <div className="bg-[#1e293b] overflow-hidden rounded-xl p-4">
-                <div className="flex items-center">
-                  <div className="bg-[#3b82f6] rounded-xl p-3 mr-4">
-                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
-                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-400 truncate">
-                      Total Clientes
-                    </dt>
-                    <dd className="mt-1 text-2xl font-semibold text-white">
-                      {totalClientes}
-                    </dd>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-[#1e293b] overflow-hidden rounded-xl p-4">
-                <div className="flex items-center">
-                  <div className="bg-[#22c55e] rounded-xl p-3 mr-4">
-                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
-                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-400 truncate">
-                      Total Comisión
-                    </dt>
-                    <dd className="mt-1 text-2xl font-semibold text-white">
-                      ${totalComision.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                    </dd>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-[#1e293b] overflow-hidden rounded-xl p-4">
-                <div className="flex items-center">
-                  <div className="bg-[#6366f1] rounded-xl p-3 mr-4">
-                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
-                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                    </svg>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-400 truncate">
-                      Total Negocios
-                    </dt>
-                    <dd className="mt-1 text-2xl font-semibold text-white">
-                      {totalNegocios}
-                    </dd>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-[#1e293b] overflow-hidden rounded-xl p-4">
-                <div className="flex items-center">
-                  <div className="bg-[#ca8a04] rounded-xl p-3 mr-4">
-                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
-                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-400 truncate">
-                      Tasa de Éxito
-                    </dt>
-                    <dd className="mt-1 text-2xl font-semibold text-white">
-                      {tasaExito.toFixed(1)}%
-                    </dd>
-                  </div>
-                </div>
-              </div>
+              <StatCard 
+                title="Total Clientes" 
+                value={isLoading ? '...' : totalClientes} 
+                icon={icons.cliente} 
+                colorClass="bg-[#3b82f6]"
+              />
+              <StatCard 
+                title="Total Comisión" 
+                value={isLoading ? '...' : `$${totalComision.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`} 
+                icon={icons.comision} 
+                colorClass="bg-[#22c55e]"
+              />
+              <StatCard 
+                title="Total Negocios" 
+                value={isLoading ? '...' : totalNegocios} 
+                icon={icons.negocios} 
+                colorClass="bg-[#6366f1]"
+              />
+              <StatCard 
+                title="Tasa de Éxito" 
+                value={isLoading ? '...' : `${tasaExito.toFixed(1)}%`} 
+                icon={icons.tasaExito} 
+                colorClass="bg-[#ca8a04]"
+              />
             </div>
 
-            <div className="flex justify-end mb-4">
-              <button
-                onClick={handleCreateNegociacion}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                Nueva Negociación
-              </button>
-            </div>
-
-            <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-              <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                {/* Columna: En Proceso */}
-                <div className="bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-lg border border-blue-100 dark:border-blue-900 overflow-hidden">
-                  <div className="p-4 border-b border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/50">
-                    <h2 className="text-lg font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      En Proceso
-                    </h2>
-                  </div>
-                  <Droppable droppableId="en-proceso">
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className="p-6 space-y-6 min-h-[200px] max-h-[calc(100vh-300px)] overflow-y-auto"
-                      >
-                        {negociaciones['en-proceso'].map((negociacion, index) => (
-                          <Draggable
-                            key={negociacion.uniqueId || negociacion.IDNegociacion}
-                            draggableId={negociacion.uniqueId || negociacion.IDNegociacion.toString()}
-                            index={index}
-                          >
-                            {(provided) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className="mb-4"
-                              >
-                                <NegociacionCard
-                                  id={negociacion.IDNegociacion.toString()}
-                                  cliente={negociacion.ClienteNombre}
-                                  vendedor={negociacion.VendedorNombre}
-                                  productos={negociacion.Productos || []}
-                                  total={negociacion.Total}
-                                  comision={negociacion.Comision}
-                                  onEdit={handleEditNegociacion}
-                                  onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
-                                  clientes={clientes}
-                                  vendedores={vendedores}
-                                  productosDisponibles={productos}
-                                />
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
+            {/* Button for non-admins */} 
+            {!isAdmin && (
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={handleCreateNegociacion}
+                    disabled={isLoading}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50">
+                    Nueva Negociación
+                  </button>
                 </div>
+            )}
 
-                {/* Columna: Terminada */}
-                <div className="bg-gradient-to-br from-white to-green-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-lg border border-green-100 dark:border-green-900 overflow-hidden">
-                  <div className="p-4 border-b border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/50">
-                    <h2 className="text-lg font-medium text-green-900 dark:text-green-100 flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Terminada
-                    </h2>
-                  </div>
-                  <Droppable droppableId="terminada">
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className="p-6 space-y-6 min-h-[200px] max-h-[calc(100vh-300px)] overflow-y-auto"
-                      >
-                        {negociaciones['terminada'].map((negociacion, index) => (
-                          <Draggable
-                            key={negociacion.uniqueId || negociacion.IDNegociacion}
-                            draggableId={negociacion.uniqueId || negociacion.IDNegociacion.toString()}
-                            index={index}
-                          >
-                            {(provided) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className="mb-4"
-                              >
-                                <NegociacionCard
-                                  id={negociacion.IDNegociacion.toString()}
-                                  cliente={negociacion.ClienteNombre}
-                                  vendedor={negociacion.VendedorNombre}
-                                  productos={negociacion.Productos || []}
-                                  total={negociacion.Total}
-                                  comision={negociacion.Comision}
-                                  onEdit={handleEditNegociacion}
-                                  onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
-                                  clientes={clientes}
-                                  vendedores={vendedores}
-                                  productosDisponibles={productos}
-                                />
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
-
-                {/* Columna: Cancelada */}
-                <div className="bg-gradient-to-br from-white to-red-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-lg border border-red-100 dark:border-red-900 overflow-hidden">
-                  <div className="p-4 border-b border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/50">
-                    <h2 className="text-lg font-medium text-red-900 dark:text-red-100 flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Cancelada
-                    </h2>
-                  </div>
-                  <Droppable droppableId="cancelada">
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className="p-6 space-y-6 min-h-[200px] max-h-[calc(100vh-300px)] overflow-y-auto"
-                      >
-                        {negociaciones['cancelada'].map((negociacion, index) => (
-                          <Draggable
-                            key={negociacion.uniqueId || negociacion.IDNegociacion}
-                            draggableId={negociacion.uniqueId || negociacion.IDNegociacion.toString()}
-                            index={index}
-                          >
-                            {(provided) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className="mb-4"
-                              >
-                                <NegociacionCard
-                                  id={negociacion.IDNegociacion.toString()}
-                                  cliente={negociacion.ClienteNombre}
-                                  vendedor={negociacion.VendedorNombre}
-                                  productos={negociacion.Productos || []}
-                                  total={negociacion.Total}
-                                  comision={negociacion.Comision}
-                                  onEdit={handleEditNegociacion}
-                                  onDelete={(id) => handleDeleteNegociacion(parseInt(id))}
-                                  clientes={clientes}
-                                  vendedores={vendedores}
-                                  productosDisponibles={productos}
-                                />
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
+            {/* Drag and Drop Area */} 
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                 <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
               </div>
-            </DragDropContext>
+            ) : (
+              <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                  <NegociacionColumn
+                    droppableId="en-proceso"
+                    title="En Proceso"
+                    icon={icons.enProceso}
+                    negociacionesList={negociaciones['en-proceso']}
+                    columnColorClasses={columnStyles['en-proceso']}
+                    onEdit={handleEditNegociacion}
+                    onDelete={handleDeleteNegociacion}
+                    clientes={clientes}
+                    vendedores={vendedores}
+                    productosDisponibles={productos}
+                  />
+                  <NegociacionColumn
+                    droppableId="terminada"
+                    title="Terminada"
+                    icon={icons.terminada}
+                    negociacionesList={negociaciones['terminada']}
+                    columnColorClasses={columnStyles['terminada']}
+                    onEdit={handleEditNegociacion}
+                    onDelete={handleDeleteNegociacion}
+                    clientes={clientes}
+                    vendedores={vendedores}
+                    productosDisponibles={productos}
+                  />
+                  <NegociacionColumn
+                    droppableId="cancelada"
+                    title="Cancelada"
+                    icon={icons.cancelada}
+                    negociacionesList={negociaciones['cancelada']}
+                    columnColorClasses={columnStyles['cancelada']}
+                    onEdit={handleEditNegociacion}
+                    onDelete={handleDeleteNegociacion}
+                    clientes={clientes}
+                    vendedores={vendedores}
+                    productosDisponibles={productos}
+                  />
+                </div>
+              </DragDropContext>
+            )}
           </div>
         </main>
       </div>
 
-      {/* Modal para crear nueva negociación */}
-      {isModalOpen && (
-        <div 
-          className="fixed inset-0 backdrop-blur-sm bg-black/30 z-50 flex items-center justify-center p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setIsModalOpen(false);
-            }
-          }}
-        >
-          <div 
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Nueva Negociación
-              </h2>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+      {/* Modal */}
+      <CreateNegociacionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleSubmitNewNegociacion}
+        clientes={clientes}
+        vendedores={vendedores}
+        productosDisponibles={productos}
+      />
 
-            <NegociacionCard
-              id="new"
-              cliente=""
-              vendedor=""
-              productos={[]}
-              total={0}
-              comision={0}
-              onEdit={(id, data) => {
-                const formData: FormNegociacionData = {
-                  ...data,
-                  productos: data.productos.map(p => ({
-                    IDProducto: p.IDProducto,
-                    Cantidad: p.Cantidad,
-                    PrecioUnitario: p.PrecioUnitario,
-                    Subtotal: p.Subtotal,
-                    Descripcion: ''
-                  }))
-                };
-                handleSubmitNegociacion(formData);
-              }}
-              onDelete={() => setIsModalOpen(false)}
-              clientes={clientes}
-              vendedores={vendedores}
-              productosDisponibles={productos}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Notificación */}
+      {/* Notification */} 
       {notification.show && (
         <Notification
           message={notification.message}

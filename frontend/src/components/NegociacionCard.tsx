@@ -244,20 +244,25 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
               </label>
               <button
                 onClick={() => {
-                  setProductos([...productos, {
-                    IDProducto: 0,
-                    Cantidad: 1,
-                    PrecioUnitario: 0,
-                    Subtotal: 0,
-                    Descripcion: ''
-                  }]);
+                  // Find first available product to pre-select
+                  const firstProduct = productosDisponibles[0];
+                  if (firstProduct) {
+                    setProductos([...productos, {
+                      IDProducto: firstProduct.IDProducto,
+                      Cantidad: 1,
+                      PrecioUnitario: firstProduct.Precio,
+                      Subtotal: firstProduct.Precio, // Initial subtotal is just the price
+                      Descripcion: firstProduct.Descripcion
+                    }]);
+                  }
                 }}
                 className="px-3 py-1 text-sm text-white bg-[#2e3b4e] rounded-lg hover:bg-[#3e4b5e] transition-colors flex items-center gap-1"
+                disabled={productosDisponibles.length === 0}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Agregar
+                Agregar Producto
               </button>
             </div>
             <div className="space-y-3">

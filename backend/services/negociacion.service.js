@@ -43,104 +43,237 @@ const obtenerTodasLasNegociaciones = async () => {
 
 const obtenerNegociacionPorId = async (id) => {
     const result = await sql.query`
-        SELECT n.*, e.Descripcion as Estado, v.Nombre as Vendedor, c.Nombre as Cliente,
-               (SELECT COUNT(np.IDProducto)
-                FROM [dbo].[NegociacionProductos] np
-                WHERE np.IDNegociacion = n.IDNegociacion) as ProductCount
-        FROM [dbo].[Negociacion] n
-        INNER JOIN [dbo].[Estado] e ON n.Estado = e.ID
-        INNER JOIN [dbo].[Vendedor] v ON n.IdVendedor = v.ID
-        INNER JOIN [dbo].[Cliente] c ON n.IdCliente = c.ID
+        SELECT 
+            n.IDNegociacion,
+            c.Nombre as ClienteNombre,
+            v.Nombre as VendedorNombre,
+            n.Total,
+            n.Comision,
+            n.Estado,
+            n.FechaInicio,
+            n.FechaFin,
+            e.Descripcion as EstadoDescripcion,
+            n.Total as Monto,
+            n.IdCliente,
+            n.IdVendedor
+        FROM Negociacion n
+        INNER JOIN Estado e ON n.Estado = e.Id
+        INNER JOIN Vendedor v ON n.IdVendedor = v.Id
+        INNER JOIN Cliente c ON n.IdCliente = c.Id
         WHERE n.IDNegociacion = ${id}
     `;
-    return result.recordset[0];
+    
+    const negociacion = result.recordset[0];
+
+    if (negociacion) {
+        // Get productos for the specific negociacion
+        const productosResult = await sql.query`
+            SELECT 
+                np.IDProducto,
+                np.Cantidad,
+                np.Precio as PrecioUnitario, 
+                (np.Cantidad * np.Precio) as Subtotal,
+                p.Descripcion -- Get description from Productos table
+            FROM NegociacionProductos np
+            INNER JOIN Productos p ON np.IDProducto = p.IDProducto
+            WHERE np.IDNegociacion = ${negociacion.IDNegociacion}
+        `;
+        negociacion.Productos = productosResult.recordset;
+    }
+
+    return negociacion; // Will return undefined if not found
 };
 
 const crearNegociacion = async (negociacion) => {
-    const { EstadoID, IdVendedor, IdCliente, FechaInicio, Total, Comision } = negociacion;
-    
-    // Add validation
-    if (!IdVendedor || !IdCliente || !FechaInicio) {
-        throw new Error('Faltan campos requeridos: IdVendedor, IdCliente, y FechaInicio son obligatorios');
-    }
+    // Destructure ALL expected fields, including productos
+    const { EstadoID = 2, IdVendedor, IdCliente, FechaInicio = new Date().toISOString().split('T')[0], Total = 0, Comision = 0, productos } = negociacion;
 
+    // Enhanced validation at the service layer
+    if (!IdVendedor || !IdCliente) {
+        throw new Error('Faltan campos requeridos: IdVendedor e IdCliente son obligatorios');
+    }
+    if (!productos || !Array.isArray(productos) || productos.length === 0) {
+        throw new Error('No se puede crear una negociación sin productos'); // Keep this validation
+    }
+    // Optional: Add validation for product content (IDProducto, Cantidad, PrecioUnitario) here if needed
+
+    const transaction = new sql.Transaction();
     try {
-        const result = await sql.query`
-            INSERT INTO Negociacion (Estado, IdVendedor, IdCliente, FechaInicio, FechaFin, Total, Comision)
-            OUTPUT INSERTED.*
-            VALUES (${EstadoID}, ${IdVendedor}, ${IdCliente}, ${FechaInicio}, ${FechaInicio}, ${Total}, ${Comision});
-        `;
-        return result.recordset[0];
+        await transaction.begin();
+
+        // Insert main negotiation record
+        const resultNegociacion = await transaction.request()
+            .input('EstadoID', sql.Int, EstadoID)
+            .input('IdVendedor', sql.Int, IdVendedor)
+            .input('IdCliente', sql.Int, IdCliente)
+            .input('FechaInicio', sql.Date, FechaInicio)
+            // Use FechaInicio also for FechaFin initially or make it NULL depending on logic
+            .input('FechaFin', sql.Date, FechaInicio) 
+            .input('Total', sql.Decimal(10, 2), Total)
+            .input('Comision', sql.Decimal(10, 2), Comision)
+            .query(`
+                INSERT INTO Negociacion (Estado, IdVendedor, IdCliente, FechaInicio, FechaFin, Total, Comision)
+                OUTPUT INSERTED.IDNegociacion
+                VALUES (@EstadoID, @IdVendedor, @IdCliente, @FechaInicio, @FechaFin, @Total, @Comision);
+            `);
+
+        const newNegociacionId = resultNegociacion.recordset[0].IDNegociacion;
+
+        // Insert associated products
+        for (const producto of productos) {
+            // Enhanced validation for each product
+            if (!producto.IDProducto || producto.IDProducto <= 0) {
+                throw new Error(`Producto inválido: El ID del producto debe ser un número positivo.`);
+            }
+            if (!producto.Cantidad || producto.Cantidad <= 0) {
+                throw new Error(`Producto ${producto.IDProducto}: La cantidad debe ser mayor a 0.`);
+            }
+            if (producto.PrecioUnitario == null || producto.PrecioUnitario < 0) {
+                throw new Error(`Producto ${producto.IDProducto}: El precio unitario no puede ser negativo.`);
+            }
+
+            await transaction.request()
+                .input('IDNegociacion', sql.Int, newNegociacionId)
+                .input('IDProducto', sql.Int, producto.IDProducto)
+                .input('Cantidad', sql.Int, producto.Cantidad)
+                .input('Precio', sql.Decimal(10, 2), producto.PrecioUnitario)
+                .input('Descripcion', sql.NVarChar, producto.Descripcion || '')
+                .query(`
+                    INSERT INTO NegociacionProductos (IDNegociacion, IDProducto, Cantidad, Precio, Descripcion)
+                    VALUES (@IDNegociacion, @IDProducto, @Cantidad, @Precio, @Descripcion);
+                `);
+        }
+
+        await transaction.commit();
+
+        // Fetch and return the complete new negotiation object
+        return await obtenerNegociacionPorId(newNegociacionId); // Reuse existing function if it fetches products
+
     } catch (error) {
-        console.error('Error in crearNegociacion:', error);
+        console.error('Error in crearNegociacion transaction:', error);
+        await transaction.rollback(); // Rollback on error
+        // Rethrow a more specific error or the original one
         throw new Error(`Error al crear la negociación: ${error.message}`);
     }
 };
 
 const actualizarNegociacion = async (id, negociacion) => {
-    const { EstadoID, Total, Comision } = negociacion;
+    // Destructure expected fields for update, including products
+    const { IdVendedor, IdCliente, Total, Comision, productos } = negociacion;
     
+    // Validate required fields for update if necessary (e.g., ensure client/vendor are not removed)
+    if (IdVendedor === undefined || IdCliente === undefined) {
+        throw new Error('IdVendedor e IdCliente son requeridos para la actualización.');
+    }
+     // Allow products array to be empty or missing if the intent is to clear products
+    if (productos && !Array.isArray(productos)) {
+        throw new Error('El campo productos debe ser un array.');
+    }
+
+    const transaction = new sql.Transaction();
     try {
-        // Verificar que la negociación exista
-        const negociacionExistente = await obtenerNegociacionPorId(id);
-        if (!negociacionExistente) {
-            throw new Error('La negociación no existe');
+        await transaction.begin();
+
+        // 1. Update main negotiation details
+        const requestUpdate = transaction.request(); // Use the same request for inputs
+        requestUpdate.input('IDNegociacion', sql.Int, id);
+        requestUpdate.input('IdVendedor', sql.Int, IdVendedor);
+        requestUpdate.input('IdCliente', sql.Int, IdCliente);
+        requestUpdate.input('Total', sql.Decimal(10, 2), Total);
+        requestUpdate.input('Comision', sql.Decimal(10, 2), Comision);
+        
+        const updateResult = await requestUpdate.query(`
+            UPDATE Negociacion 
+            SET 
+                IdVendedor = @IdVendedor,
+                IdCliente = @IdCliente,
+                Total = @Total,
+                Comision = @Comision
+                -- Do NOT update Estado or FechaFin here; that's handled separately
+            WHERE IDNegociacion = @IDNegociacion;
+        `);
+
+        if (updateResult.rowsAffected[0] === 0) {
+            throw new Error('La negociación no existe o no se pudo actualizar');
         }
 
-        // Validar que el estado sea válido (1, 2 o 3)
-        if (EstadoID && ![1, 2, 3].includes(EstadoID)) {
-            throw new Error('Estado inválido. Debe ser 1 (cancelada), 2 (en proceso) o 3 (terminada)');
+        // 2. Delete existing products for this negotiation
+        await transaction.request()
+            .input('IDNegociacion', sql.Int, id)
+            .query('DELETE FROM NegociacionProductos WHERE IDNegociacion = @IDNegociacion');
+
+        // 3. Insert new products if provided
+        if (productos && productos.length > 0) {
+            for (const producto of productos) {
+                // Enhanced validation for each product
+                if (!producto.IDProducto || producto.IDProducto <= 0) {
+                    throw new Error(`Producto inválido: El ID del producto debe ser un número positivo.`);
+                }
+                if (!producto.Cantidad || producto.Cantidad <= 0) {
+                    throw new Error(`Producto ${producto.IDProducto}: La cantidad debe ser mayor a 0.`);
+                }
+                if (producto.PrecioUnitario == null || producto.PrecioUnitario < 0) {
+                    throw new Error(`Producto ${producto.IDProducto}: El precio unitario no puede ser negativo.`);
+                }
+
+                await transaction.request()
+                    .input('IDNegociacion', sql.Int, id)
+                    .input('IDProducto', sql.Int, producto.IDProducto)
+                    .input('Cantidad', sql.Int, producto.Cantidad)
+                    .input('Precio', sql.Decimal(10, 2), producto.PrecioUnitario)
+                    .input('Descripcion', sql.NVarChar, producto.Descripcion || '')
+                    .query(`
+                        INSERT INTO NegociacionProductos (IDNegociacion, IDProducto, Cantidad, Precio, Descripcion)
+                        VALUES (@IDNegociacion, @IDProducto, @Cantidad, @Precio, @Descripcion);
+                    `);
+            }
         }
 
-        // Validar que Total y Comision sean números positivos si se proporcionan
-        if (Total !== undefined && (isNaN(Total) || Total < 0)) {
-            throw new Error('El total debe ser un número positivo');
-        }
-        if (Comision !== undefined && (isNaN(Comision) || Comision < 0)) {
-            throw new Error('La comisión debe ser un número positivo');
-        }
+        await transaction.commit();
 
-        // Usar template strings para una consulta más segura y clara
+        // Fetch and return the updated negotiation object
+        return await obtenerNegociacionPorId(id);
+
+    } catch (error) {
+        console.error('Error in actualizarNegociacion transaction:', error);
+        await transaction.rollback();
+        throw new Error(`Error al actualizar la negociación: ${error.message}`);
+    }
+};
+
+// Separate function to specifically handle Estado update (from drag-and-drop)
+const actualizarEstadoNegociacion = async (id, estadoId) => {
+    // Validate estadoId
+    if (![1, 2, 3].includes(estadoId)) {
+        throw new Error('Estado inválido. Debe ser 1 (cancelada), 2 (en proceso) o 3 (terminada).');
+    }
+
+    try {
         const request = new sql.Request();
         request.input('IDNegociacion', sql.Int, id);
+        request.input('EstadoID', sql.Int, estadoId);
 
-        let updateFields = [];
-        if (EstadoID !== undefined) {
-            request.input('EstadoID', sql.Int, EstadoID);
-            updateFields.push('Estado = @EstadoID');
-        }
-        if (Total !== undefined) {
-            request.input('Total', sql.Decimal(10, 2), Total);
-            updateFields.push('Total = @Total');
-        }
-        if (Comision !== undefined) {
-            request.input('Comision', sql.Decimal(10, 2), Comision);
-            updateFields.push('Comision = @Comision');
-        }
-
-        // Si el estado es 3 (terminada) y es diferente al estado actual, actualizar la fecha de fin
-        if (EstadoID === 3 && negociacionExistente.Estado !== 3) {
-            updateFields.push('FechaFin = GETDATE()');
-        }
-
-        const query = `
+        let query = `
             UPDATE Negociacion 
-            SET ${updateFields.join(', ')}
+            SET Estado = @EstadoID 
+            ${estadoId === 3 ? ', FechaFin = GETDATE()' : ''} -- Update FechaFin if moving to Terminada
             WHERE IDNegociacion = @IDNegociacion;
             
-            SELECT * FROM Negociacion WHERE IDNegociacion = @IDNegociacion;
-        `;
+            SELECT * FROM Negociacion WHERE IDNegociacion = @IDNegociacion; 
+        `; // Return updated record
 
         const result = await request.query(query);
-        
-        if (result.rowsAffected[0] === 0) {
-            throw new Error('No se pudo actualizar la negociación');
-        }
 
-        return result.recordset[0];
+        if (result.rowsAffected[0] === 0) {
+            throw new Error('No se pudo actualizar el estado de la negociación (¿no encontrada?)');
+        }
+        
+        // Fetch full details including products after state update
+        return await obtenerNegociacionPorId(id);
+
     } catch (error) {
-        console.error('Error al actualizar la negociación:', error);
-        throw new Error(`Error al actualizar la negociación: ${error.message}`);
+         console.error('Error al actualizar el estado de la negociación:', error);
+        throw new Error(`Error al actualizar el estado: ${error.message}`);
     }
 };
 
@@ -174,7 +307,8 @@ module.exports = {
     obtenerTodasLasNegociaciones,
     obtenerNegociacionPorId,
     crearNegociacion,
-    actualizarNegociacion,
+    actualizarNegociacion, // Handles updates from Edit form
+    actualizarEstadoNegociacion, // Handles state update from Drag & Drop
     eliminarNegociacion,
     obtenerVentasMesActual
 };

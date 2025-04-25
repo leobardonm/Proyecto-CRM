@@ -302,57 +302,30 @@ export default function Home() {
     };
 
     // Process top products data
-    const productSales: { [key: string]: { total: number, cantidad: number } } = {};
+    const productSales: { [key: string]: number } = {};
     filteredNegociaciones.completed.forEach((neg: any) => {
       if (Array.isArray(neg.Productos)) {
         neg.Productos.forEach((prod: any) => {
-          const product = data.productos.find((p: any) => p.IDProducto === prod.IDProducto);
+          const product = data.productos.find((p: any) => p.Id === prod.IDProducto);
           if (product) {
-            if (!productSales[product.Descripcion]) {
-              productSales[product.Descripcion] = { total: 0, cantidad: 0 };
-            }
-            productSales[product.Descripcion].total += prod.Cantidad * prod.PrecioUnitario;
-            productSales[product.Descripcion].cantidad += prod.Cantidad;
+            const total = prod.Cantidad * prod.PrecioUnitario;
+            productSales[product.Nombre] = (productSales[product.Nombre] || 0) + total;
           }
         });
       }
     });
 
     const topProducts = Object.entries(productSales)
-      .sort(([,a], [,b]) => b.total - a.total)
-      .slice(0, 5)
-      .reverse();
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5);
 
     const topProductsData = {
       labels: topProducts.map(([name]) => name),
       datasets: [{
         label: 'Ventas por Producto',
-        data: topProducts.map(([,value]) => value.total),
-        backgroundColor: [
-          'rgba(59, 130, 246, 0.8)',   // Blue
-          'rgba(34, 197, 94, 0.8)',    // Green
-          'rgba(239, 68, 68, 0.8)',    // Red
-          'rgba(245, 158, 11, 0.8)',   // Yellow
-          'rgba(139, 92, 246, 0.8)',   // Purple
-        ],
-        borderRadius: 6,
-        barThickness: 30,
-        yAxisID: 'y',
-        xAxisID: 'sales'
-      }, {
-        label: 'Cantidad Vendida',
-        data: topProducts.map(([,value]) => value.cantidad),
-        backgroundColor: [
-          'rgba(59, 130, 246, 0.4)',   // Blue (lighter)
-          'rgba(34, 197, 94, 0.4)',    // Green (lighter)
-          'rgba(239, 68, 68, 0.4)',    // Red (lighter)
-          'rgba(245, 158, 11, 0.4)',   // Yellow (lighter)
-          'rgba(139, 92, 246, 0.4)',   // Purple (lighter)
-        ],
-        borderRadius: 6,
-        barThickness: 30,
-        yAxisID: 'y',
-        xAxisID: 'quantity'
+        data: topProducts.map(([,value]) => value),
+        backgroundColor: '#3b82f6',
+        borderRadius: 6
       }]
     };
 
@@ -511,7 +484,6 @@ export default function Home() {
   const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    indexAxis: 'y' as const,
     plugins: {
       legend: {
         position: 'top' as const,
@@ -519,82 +491,32 @@ export default function Home() {
           color: 'rgb(156, 163, 175)',
           font: {
             size: 12
-          },
-          padding: 20
-        }
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context: any) {
-            let label = context.dataset.label || '';
-            if (label) {
-              label += ': ';
-              if (label.includes('Ventas')) {
-                label += '$' + context.parsed.x.toLocaleString('es-MX', { minimumFractionDigits: 2 });
-              } else {
-                label += context.parsed.x.toLocaleString('es-MX') + ' unidades';
-              }
-            }
-            return label;
           }
         }
       }
     },
     scales: {
-      sales: {
-        type: 'linear' as const,
-        position: 'bottom' as const,
+      y: {
         beginAtZero: true,
         grid: {
           color: 'rgba(156, 163, 175, 0.1)'
         },
         ticks: {
           color: 'rgb(156, 163, 175)',
-          callback: function(value: number) {
-            return '$' + value.toLocaleString('es-MX');
-          },
-          padding: 10
+          callback: function(this: any, tickValue: number | string) {
+            return '$' + Number(tickValue).toLocaleString('es-MX');
+          }
         }
       },
-      quantity: {
-        type: 'linear' as const,
-        position: 'top' as const,
-        beginAtZero: true,
+      x: {
         grid: {
-          drawOnChartArea: false // only show grid lines for primary axis
+          color: 'rgba(156, 163, 175, 0.1)'
         },
         ticks: {
-          color: 'rgb(156, 163, 175)',
-          callback: function(value: number) {
-            return value.toLocaleString('es-MX') + ' u.';
-          },
-          padding: 10
-        }
-      },
-      y: {
-        grid: {
-          display: false
-        },
-        ticks: {
-          color: 'rgb(156, 163, 175)',
-          font: {
-            size: 12,
-            weight: '500'
-          },
-          padding: 12
+          color: 'rgb(156, 163, 175)'
         }
       }
-    },
-    layout: {
-      padding: {
-        left: 20,
-        right: 20,
-        top: 40, // Increased to accommodate top axis
-        bottom: 10
-      }
-    },
-    barPercentage: 0.8,
-    categoryPercentage: 0.9
+    }
   };
 
   // Utility function to check if a response is JSON
