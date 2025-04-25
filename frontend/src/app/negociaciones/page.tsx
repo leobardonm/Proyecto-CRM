@@ -101,12 +101,23 @@ export default function NegociacionesPage() {
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`)
       ]);
 
+      // Log the responses for debugging
+      console.log('Clientes response:', clientesRes);
+
       const [negociacionesData, clientesData, vendedoresData, productosData] = await Promise.all([
         negociacionesRes.ok ? negociacionesRes.json() : [],
         clientesRes.ok ? clientesRes.json() : [],
         vendedoresRes.ok ? vendedoresRes.json() : [],
         productosRes.ok ? productosRes.json() : []
       ]);
+
+      // Log the parsed data for debugging
+      console.log('Parsed clientes data:', clientesData);
+
+      if (!Array.isArray(clientesData)) {
+        console.error('Clientes data is not an array:', clientesData);
+        throw new Error('Invalid clientes data format');
+      }
 
       setClientes(clientesData);
       setProductos(productosData);
