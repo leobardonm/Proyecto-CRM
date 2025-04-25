@@ -55,7 +55,15 @@ export default function VendedoresPage() {
     {
       header: 'Email',
       accessor: 'Email',
-      key: 'email'
+      key: 'email',
+      cell: (row: Vendedor) => (
+        <a 
+          href={`mailto:${row.Email}`}
+          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
+        >
+          {row.Email}
+        </a>
+      )
     },
     {
       header: 'Teléfono',

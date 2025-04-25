@@ -55,7 +55,15 @@ export default function ClientesPage() {
     {
       header: 'Email',
       accessor: 'Email',
-      key: 'email'
+      key: 'email',
+      cell: (row: Cliente) => (
+        <a 
+          href={`mailto:${row.Email}`}
+          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
+        >
+          {row.Email}
+        </a>
+      )
     },
     {
       header: 'Acciones',
