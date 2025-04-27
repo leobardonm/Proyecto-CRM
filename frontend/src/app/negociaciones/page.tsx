@@ -545,21 +545,21 @@ export default function NegociacionesPage() {
     'en-proceso': {
       bgGradient: 'from-white to-blue-50 dark:from-gray-800 dark:to-gray-900',
       border: 'border-blue-100 dark:border-blue-900',
-      headerBg: 'bg-blue-50/50 dark:bg-blue-900/50',
+      headerBg: 'bg-white dark:bg-blue-900/50',
       headerBorder: 'border-blue-200 dark:border-blue-800',
       headerText: 'text-blue-900 dark:text-blue-100'
     },
     'terminada': {
       bgGradient: 'from-white to-green-50 dark:from-gray-800 dark:to-gray-900',
       border: 'border-green-100 dark:border-green-900',
-      headerBg: 'bg-green-50/50 dark:bg-green-900/50',
+      headerBg: 'bg-white dark:bg-green-900/50',
       headerBorder: 'border-green-200 dark:border-green-800',
       headerText: 'text-green-900 dark:text-green-100'
     },
     'cancelada': {
       bgGradient: 'from-white to-red-50 dark:from-gray-800 dark:to-gray-900',
       border: 'border-red-100 dark:border-red-900',
-      headerBg: 'bg-red-50/50 dark:bg-red-900/50',
+      headerBg: 'bg-white dark:bg-red-900/50',
       headerBorder: 'border-red-200 dark:border-red-800',
       headerText: 'text-red-900 dark:text-red-100'
     }

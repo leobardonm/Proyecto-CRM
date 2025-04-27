@@ -304,12 +304,12 @@ export default function Home() {
     // Process top products data
     const productSales: { [key: string]: number } = {};
     filteredNegociaciones.completed.forEach((neg: any) => {
-      if (Array.isArray(neg.Productos)) {
+      if (neg.Productos && Array.isArray(neg.Productos)) {
         neg.Productos.forEach((prod: any) => {
-          const product = data.productos.find((p: any) => p.Id === prod.IDProducto);
+          const product = data.productos.find((p: any) => p.IDProducto === prod.IDProducto);
           if (product) {
             const total = prod.Cantidad * prod.PrecioUnitario;
-            productSales[product.Nombre] = (productSales[product.Nombre] || 0) + total;
+            productSales[product.Descripcion] = (productSales[product.Descripcion] || 0) + total;
           }
         });
       }
@@ -319,12 +319,21 @@ export default function Home() {
       .sort(([,a], [,b]) => b - a)
       .slice(0, 5);
 
+    // Array of distinct colors for products
+    const productColors = [
+      '#6366f1', // Indigo
+      '#ec4899', // Pink
+      '#14b8a6', // Teal
+      '#f97316', // Orange
+      '#8b5cf6', // Violet
+    ];
+
     const topProductsData = {
       labels: topProducts.map(([name]) => name),
       datasets: [{
         label: 'Ventas por Producto',
         data: topProducts.map(([,value]) => value),
-        backgroundColor: '#3b82f6',
+        backgroundColor: topProducts.map((_, index) => productColors[index % productColors.length]),
         borderRadius: 6
       }]
     };
@@ -416,7 +425,7 @@ export default function Home() {
       legend: {
         position: 'top' as const,
         labels: {
-          color: 'rgb(156, 163, 175)',
+          color: 'rgb(75, 85, 99)',
           font: {
             size: 12
           }
@@ -425,7 +434,7 @@ export default function Home() {
       title: {
         display: true,
         text: 'Ventas Completadas por Mes',
-        color: 'rgb(156, 163, 175)',
+        color: 'rgb(75, 85, 99)',
         font: {
           size: 14,
           weight: 'normal' as const
@@ -436,10 +445,10 @@ export default function Home() {
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(156, 163, 175, 0.1)'
+          color: 'rgba(75, 85, 99, 0.1)'
         },
         ticks: {
-          color: 'rgb(156, 163, 175)',
+          color: 'rgb(75, 85, 99)',
           callback: function(this: any, tickValue: number | string) {
             return '$' + Number(tickValue).toLocaleString();
           }
@@ -447,10 +456,10 @@ export default function Home() {
       },
       x: {
         grid: {
-          color: 'rgba(156, 163, 175, 0.1)'
+          color: 'rgba(75, 85, 99, 0.1)'
         },
         ticks: {
-          color: 'rgb(156, 163, 175)'
+          color: 'rgb(75, 85, 99)'
         }
       }
     }
@@ -463,7 +472,7 @@ export default function Home() {
       legend: {
         position: 'top' as const,
         labels: {
-          color: 'rgb(156, 163, 175)',
+          color: 'rgb(75, 85, 99)',
           font: {
             size: 12
           }
@@ -472,7 +481,7 @@ export default function Home() {
       title: {
         display: true,
         text: 'Distribución de Negociaciones',
-        color: 'rgb(156, 163, 175)',
+        color: 'rgb(75, 85, 99)',
         font: {
           size: 14,
           weight: 'normal' as const
@@ -488,7 +497,7 @@ export default function Home() {
       legend: {
         position: 'top' as const,
         labels: {
-          color: 'rgb(156, 163, 175)',
+          color: 'rgb(75, 85, 99)',
           font: {
             size: 12
           }
@@ -499,10 +508,10 @@ export default function Home() {
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(156, 163, 175, 0.1)'
+          color: 'rgba(75, 85, 99, 0.1)'
         },
         ticks: {
-          color: 'rgb(156, 163, 175)',
+          color: 'rgb(75, 85, 99)',
           callback: function(this: any, tickValue: number | string) {
             return '$' + Number(tickValue).toLocaleString('es-MX');
           }
@@ -510,10 +519,10 @@ export default function Home() {
       },
       x: {
         grid: {
-          color: 'rgba(156, 163, 175, 0.1)'
+          color: 'rgba(75, 85, 99, 0.1)'
         },
         ticks: {
-          color: 'rgb(156, 163, 175)'
+          color: 'rgb(75, 85, 99)'
         }
       }
     }
@@ -560,7 +569,7 @@ export default function Home() {
       legend: {
         position: 'top' as const,
         labels: {
-          color: 'rgb(156, 163, 175)',
+          color: 'rgb(75, 85, 99)',
           font: {
             size: 12
           }
@@ -569,7 +578,7 @@ export default function Home() {
       title: {
         display: true,
         text: 'Comisiones por Mes',
-        color: 'rgb(156, 163, 175)',
+        color: 'rgb(75, 85, 99)',
         font: {
           size: 14,
           weight: 'normal' as const
@@ -580,10 +589,10 @@ export default function Home() {
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(156, 163, 175, 0.1)'
+          color: 'rgba(75, 85, 99, 0.1)'
         },
         ticks: {
-          color: 'rgb(156, 163, 175)',
+          color: 'rgb(75, 85, 99)',
           callback: function(this: any, tickValue: number | string) {
             return '$' + Number(tickValue).toLocaleString();
           }
@@ -591,10 +600,10 @@ export default function Home() {
       },
       x: {
         grid: {
-          color: 'rgba(156, 163, 175, 0.1)'
+          color: 'rgba(75, 85, 99, 0.1)'
         },
         ticks: {
-          color: 'rgb(156, 163, 175)'
+          color: 'rgb(75, 85, 99)'
         }
       }
     }

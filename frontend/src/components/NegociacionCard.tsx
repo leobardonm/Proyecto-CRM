@@ -125,13 +125,13 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
     let baseStyle = provided ? 'transform transition-all duration-200 ease-in-out hover:scale-[1.02] hover:shadow-lg' : '';
     
     if (status.includes('en-proceso')) {
-      return `${baseStyle} bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800/50 border-l-4 border-blue-500`;
+      return `${baseStyle} bg-white dark:bg-[#1e293b] border-l-4 border-blue-500`;
     } else if (status.includes('terminada')) {
-      return `${baseStyle} bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/50 dark:to-green-800/50 border-l-4 border-green-500`;
+      return `${baseStyle} bg-white dark:bg-[#1e293b] border-l-4 border-green-500`;
     } else if (status.includes('cancelada')) {
-      return `${baseStyle} bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/50 dark:to-red-800/50 border-l-4 border-red-500`;
+      return `${baseStyle} bg-white dark:bg-[#1e293b] border-l-4 border-red-500`;
     }
-    return `${baseStyle} bg-[#1e293b] dark:bg-[#1e293b]`;
+    return `${baseStyle} bg-white dark:bg-[#1e293b]`;
   };
 
   // Format currency
@@ -157,13 +157,13 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-200 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                       Cliente
                     </label>
                     <select
                       value={cliente}
                       onChange={(e) => setCliente(e.target.value)}
-                      className="w-full px-3 py-2 text-white bg-[#2e3b4e] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 text-gray-900 dark:text-white bg-gray-100 dark:bg-[#2e3b4e] rounded-lg border border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Seleccionar Cliente</option>
                       {clientes?.map((c) => (
@@ -176,13 +176,13 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
 
                   {isAdmin ? (
                     <div>
-                      <label className="block text-sm font-medium text-gray-200 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                         Vendedor
                       </label>
                       <select
                         value={vendedor}
                         onChange={(e) => setVendedor(e.target.value)}
-                        className="w-full px-3 py-2 text-white bg-[#2e3b4e] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 text-gray-900 dark:text-white bg-gray-100 dark:bg-[#2e3b4e] rounded-lg border border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="">Seleccionar Vendedor</option>
                         {vendedores?.map((v) => (
@@ -194,10 +194,10 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-sm font-medium text-gray-200 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                         Vendedor
                       </label>
-                      <div className="px-3 py-2 text-white bg-[#2e3b4e] rounded-lg border border-gray-600">
+                      <div className="px-3 py-2 text-gray-900 dark:text-white bg-gray-100 dark:bg-[#2e3b4e] rounded-lg border border-gray-300 dark:border-gray-600">
                         {vendedor}
                       </div>
                     </div>
@@ -239,24 +239,23 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
         {(isEditing || id === "new") && (
           <div className="mt-6">
             <div className="flex justify-between items-center mb-3">
-              <label className="block text-sm font-medium text-gray-200">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                 Productos
               </label>
               <button
                 onClick={() => {
-                  // Find first available product to pre-select
                   const firstProduct = productosDisponibles[0];
                   if (firstProduct) {
                     setProductos([...productos, {
                       IDProducto: firstProduct.IDProducto,
                       Cantidad: 1,
                       PrecioUnitario: firstProduct.Precio,
-                      Subtotal: firstProduct.Precio, // Initial subtotal is just the price
+                      Subtotal: firstProduct.Precio,
                       Descripcion: firstProduct.Descripcion
                     }]);
                   }
                 }}
-                className="px-3 py-1 text-sm text-white bg-[#2e3b4e] rounded-lg hover:bg-[#3e4b5e] transition-colors flex items-center gap-1"
+                className="px-3 py-1 text-sm text-white bg-blue-600 dark:bg-[#2e3b4e] rounded-lg hover:bg-blue-700 dark:hover:bg-[#3e4b5e] transition-colors flex items-center gap-1"
                 disabled={productosDisponibles.length === 0}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,7 +266,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
             </div>
             <div className="space-y-3">
               {productos.map((producto, index) => (
-                <div key={index} className="flex justify-between items-center mb-3 bg-[#2e3b4e] p-3 rounded-lg">
+                <div key={index} className="flex justify-between items-center mb-3 bg-gray-100 dark:bg-[#2e3b4e] p-3 rounded-lg">
                   <div className="flex-1 mr-3">
                     <select
                       value={producto.IDProducto}
@@ -288,7 +287,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
                           setComision(calcularComision(nuevoTotal));
                         }
                       }}
-                      className="w-full px-3 py-2 text-white bg-[#1e293b] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 text-gray-900 dark:text-white bg-white dark:bg-[#1e293b] rounded-lg border border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Seleccionar Producto</option>
                       {productosDisponibles.map((p) => (
@@ -304,7 +303,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
                       min="1"
                       value={producto.Cantidad}
                       onChange={(e) => handleProductoChange(index, Number(e.target.value))}
-                      className="w-20 px-3 py-2 text-white bg-[#1e293b] rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      className="w-20 px-3 py-2 text-gray-900 dark:text-white bg-white dark:bg-[#1e293b] rounded-lg border border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                       placeholder="Cant."
                     />
                     <button
@@ -315,7 +314,7 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
                         setTotal(nuevoTotal);
                         setComision(calcularComision(nuevoTotal));
                       }}
-                      className="text-red-400 hover:text-red-300 p-2"
+                      className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-2"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -398,49 +397,30 @@ const NegociacionCard: React.FC<NegociacionCardProps> = ({
         )}
 
         {/* Totals Section */}
-        <div className="mt-6 p-4 bg-[#2e3b4e] rounded-lg">
+        <div className="mt-6 p-4 bg-gray-100 dark:bg-[#2e3b4e] rounded-lg">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-300">Total:</span>
-            <span className="text-lg font-bold text-white">${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total:</span>
+            <span className="text-lg font-bold text-gray-900 dark:text-white">${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
           </div>
-          <div className="flex justify-between items-center text-green-400">
+          <div className="flex justify-between items-center text-green-600 dark:text-green-400">
             <span className="text-sm font-medium">Comisión (15%):</span>
             <span className="text-lg font-medium">${comision.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
           </div>
         </div>
 
-        {/* Action Buttons for Editing */}
-        {isEditing && (
+        {/* Action Buttons */}
+        {(isEditing || id === "new") && (
           <div className="mt-6 flex gap-3">
             <button
               onClick={handleSave}
               disabled={!cliente || !vendedor || productos.length === 0}
               className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Guardar Cambios
+              {id === "new" ? "Crear Negociación" : "Guardar Cambios"}
             </button>
             <button
-              onClick={handleCancel}
-              className="px-4 py-2 text-sm font-medium text-gray-300 bg-[#2e3b4e] rounded-lg hover:bg-[#3e4b5e] focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Cancelar
-            </button>
-          </div>
-        )}
-
-        {/* Action Buttons for New Negotiation */}
-        {id === "new" && !isEditing && (
-          <div className="mt-6 flex gap-3">
-            <button
-              onClick={handleSave}
-              disabled={!cliente || !vendedor || productos.length === 0}
-              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Crear Negociación
-            </button>
-            <button
-              onClick={() => onDelete?.(id)}
-              className="px-4 py-2 text-sm font-medium text-gray-300 bg-[#2e3b4e] rounded-lg hover:bg-[#3e4b5e] focus:outline-none focus:ring-2 focus:ring-gray-500"
+              onClick={id === "new" ? () => onDelete?.(id) : handleCancel}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#2e3b4e] rounded-lg hover:bg-gray-200 dark:hover:bg-[#3e4b5e] focus:outline-none focus:ring-2 focus:ring-gray-500"
             >
               Cancelar
             </button>
