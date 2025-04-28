@@ -14,14 +14,19 @@ const dbConfig = {
   },
 };
 
-const conectarDB = async () => {
-  try {
-    await sql.connect(dbConfig);
-    console.log('✅ Conexión a la base de datos establecida');
-  } catch (error) {
-    console.error('❌ Error al conectar a la base de datos:', error.message);
-    process.exit(1); // Finaliza la aplicación si no se puede conectar
-  }
-};
+// Create a test database connection pool
+const pool = new sql.ConnectionPool(dbConfig);
+const poolConnect = pool.connect();
 
-module.exports = { sql, conectarDB };
+// Export the pool and a function to get a request
+module.exports = {
+  pool,
+  poolConnect,
+  getRequest: async () => {
+    await poolConnect;
+    return pool.request();
+  },
+  close: async () => {
+    await pool.close();
+  }
+}; 
