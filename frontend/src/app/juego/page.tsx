@@ -48,10 +48,10 @@ export default function JuegoPage() {
                       </div>
                     )}
                     <iframe 
-                      src="https://itch.io/embed/3514349/"
+                      src="https://itch.io/embed/3514349"
                       className="absolute top-0 left-0 w-full h-full border-0"
                       allow="autoplay; fullscreen"
-                      title="Juego de Ventas"
+                      title="DealMarketFinal"
                       onLoad={() => setGameLoaded(true)}
                     />
                   </div>
@@ -63,5 +63,3 @@ export default function JuegoPage() {
     </div>
   );
 }
-
-
