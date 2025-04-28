@@ -41,16 +41,16 @@ export default function JuegoPage() {
                     </p>
                   </div>
                   
-                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                  <div className="relative w-full" style={{ paddingBottom: '75%' }}>
                     {!gameLoaded && (
                       <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
                         <div className="animate-pulse text-gray-400">Cargando juego...</div>
                       </div>
                     )}
                     <iframe 
-                      src="https://itch.io/embed/3514349"
+                      src="https://monserratinfante.itch.io/dealmarketfinla"
                       className="absolute top-0 left-0 w-full h-full border-0"
-                      allow="autoplay; fullscreen"
+                      allow="autoplay; fullscreen; gamepad"
                       title="DealMarketFinal"
                       onLoad={() => setGameLoaded(true)}
                     />
