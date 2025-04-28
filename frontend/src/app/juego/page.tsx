@@ -48,11 +48,12 @@ export default function JuegoPage() {
                       </div>
                     )}
                     <iframe 
-                      src="https://monserratinfante.itch.io/dealmarketfinla"
+                      src="https://v6p9d9t4.ssl.hwcdn.net/html/9583171-1014471/index.html"
                       className="absolute top-0 left-0 w-full h-full border-0"
                       allow="autoplay; fullscreen; gamepad"
                       title="DealMarketFinal"
                       onLoad={() => setGameLoaded(true)}
+                      sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-forms"
                     />
                   </div>
                 </div>
