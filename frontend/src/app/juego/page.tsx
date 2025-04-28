@@ -48,7 +48,7 @@ export default function JuegoPage() {
                       </div>
                     )}
                     <iframe 
-                      src="http://localhost:61214/"
+                      src="https://itch.io/embed/3514349/"
                       className="absolute top-0 left-0 w-full h-full border-0"
                       allow="autoplay; fullscreen"
                       title="Juego de Ventas"
@@ -63,3 +63,5 @@ export default function JuegoPage() {
     </div>
   );
 }
+
+
