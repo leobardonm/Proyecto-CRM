@@ -62,7 +62,6 @@ export default function JuegoPage() {
                     width="552"
                     height="167"
                     className="w-full"
-                    title="DealMarketFinal by Monserratinfante"
                   >
 
                   </iframe>
