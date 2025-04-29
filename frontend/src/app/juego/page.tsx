@@ -45,26 +45,15 @@ export default function JuegoPage() {
                       <div className="animate-pulse text-gray-400">Cargando juego...</div>
                     </div>
                   )}
-                  <iframe
-                    src="https://itch.io/embed-upload/13321896?color=333333"
-                    className="absolute top-0 left-0 w-full h-full border-0"
-                    allow="autoplay; fullscreen; gamepad; microphone; camera; midi; encrypted-media"
-                    title="Juego de Ventas"
-                    onLoad={() => setGameLoaded(true)}
-                    sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
-                  />
-                </div>
-
-                {/* Nuevo iframe agregado */}
-                <div className="mt-6">
-                  <iframe
-                    frameBorder="0"
-                    src="https://monserratinfante.itch.io/dealmarketfinal"
-                    width="552"
+                  <iframe 
+                    frameBorder="0" 
+                    src="https://itch.io/embed/3514349" 
+                    width="552" 
                     height="167"
-                    className="w-full"
+                    onLoad={() => setGameLoaded(true)}
+                    className="absolute inset-0 w-full h-full"
                   >
-
+                    <a href="https://monserratinfante.itch.io/dealmarketfinal">DealMarketFinal by Monserratinfante</a>
                   </iframe>
                 </div>
               </div>
