@@ -248,8 +248,12 @@ const actualizarEstadoNegociacion = async (id, estadoId) => {
         throw new Error('Estado inválido. Debe ser 1 (cancelada), 2 (en proceso) o 3 (terminada).');
     }
 
+    const transaction = new sql.Transaction();
     try {
-        const request = new sql.Request();
+        await transaction.begin();
+
+        // 1. Update negotiation state
+        const request = transaction.request();
         request.input('IDNegociacion', sql.Int, id);
         request.input('EstadoID', sql.Int, estadoId);
 
@@ -260,19 +264,53 @@ const actualizarEstadoNegociacion = async (id, estadoId) => {
             WHERE IDNegociacion = @IDNegociacion;
             
             SELECT * FROM Negociacion WHERE IDNegociacion = @IDNegociacion; 
-        `; // Return updated record
+        `;
 
         const result = await request.query(query);
 
         if (result.rowsAffected[0] === 0) {
             throw new Error('No se pudo actualizar el estado de la negociación (¿no encontrada?)');
         }
-        
+
+        // 2. If state is 3 (terminada), update product stock
+        if (estadoId === 3) {
+            // Get all products from the negotiation
+            const productosResult = await transaction.request()
+                .input('IDNegociacion', sql.Int, id)
+                .query(`
+                    SELECT np.IDProducto, np.Cantidad, p.Stock
+                    FROM NegociacionProductos np
+                    INNER JOIN Productos p ON np.IDProducto = p.IDProducto
+                    WHERE np.IDNegociacion = @IDNegociacion
+                `);
+
+            // Update stock for each product
+            for (const producto of productosResult.recordset) {
+                const nuevoStock = producto.Stock - producto.Cantidad;
+                
+                if (nuevoStock < 0) {
+                    throw new Error(`No hay suficiente stock para el producto ID: ${producto.IDProducto}`);
+                }
+
+                await transaction.request()
+                    .input('IDProducto', sql.Int, producto.IDProducto)
+                    .input('NuevoStock', sql.Int, nuevoStock)
+                    .query(`
+                        UPDATE Productos
+                        SET Stock = @NuevoStock
+                        WHERE IDProducto = @IDProducto
+                    `);
+            }
+        }
+
+        await transaction.commit();
+
         // Fetch full details including products after state update
         return await obtenerNegociacionPorId(id);
 
     } catch (error) {
-         console.error('Error al actualizar el estado de la negociación:', error);
+        console.error('Error al actualizar el estado de la negociación:', error);
+        await transaction.rollback();
         throw new Error(`Error al actualizar el estado: ${error.message}`);
     }
 };
