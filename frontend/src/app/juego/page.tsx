@@ -48,9 +48,10 @@ export default function JuegoPage() {
                   <iframe
                     src="https://itch.io/embed-upload/13321896?color=333333"
                     className="absolute top-0 left-0 w-full h-full border-0"
-                    allow="autoplay; fullscreen"
+                    allow="autoplay; fullscreen; gamepad; microphone; camera; midi; encrypted-media"
                     title="Juego de Ventas"
                     onLoad={() => setGameLoaded(true)}
+                    sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
                   />
                 </div>
 
