@@ -59,7 +59,7 @@ export default function JuegoPage() {
                 <div className="mt-6">
                   <iframe
                     frameBorder="0"
-                    src="https://monserratinfante.itch.io/dealmarketfinla"
+                    src="https://monserratinfante.itch.io/dealmarketfinal"
                     width="552"
                     height="167"
                     className="w-full"
