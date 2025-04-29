@@ -64,9 +64,7 @@ export default function JuegoPage() {
                     className="w-full"
                     title="DealMarketFinal by Monserratinfante"
                   >
-                    <a href="https://monserratinfante.itch.io/dealmarketfinla">
-                      DealMarketFinal by Monserratinfante
-                    </a>
+
                   </iframe>
                 </div>
               </div>
